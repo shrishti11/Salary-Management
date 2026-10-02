@@ -115,7 +115,6 @@ Added during implementation:
 - The employee form has no `method="post"`, so a submit before hydration would use GET (PII in the query string).
 - Seed upserts by `employeeCode` only and could throw P2002 if an employee with the same email already exists under another code.
 - Profile status toast dismissal is untested.
-- React Hook Form refs attach to the `TextField` root, so focus-first-error does not focus the input.
 - Search box has no `maxLength` (server caps `q` at 100 and returns 400 beyond it).
 
 ## Next session
