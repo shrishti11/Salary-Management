@@ -21,4 +21,11 @@ describe("route config", () => {
       expect.arrayContaining(["employees", "employees/new", "employees/:id", "employees/:id/edit"]),
     );
   });
+
+  it("registers the salary directory under the authenticated layout", async () => {
+    const config = await routes;
+    const layoutEntry = config.find((r) => r.file === `${AUTHENTICATED_ROUTE_ID}.tsx`);
+
+    expect(layoutEntry?.children?.some((c) => c.path === "salaries" && c.file === "routes/salaries.tsx")).toBe(true);
+  });
 });
