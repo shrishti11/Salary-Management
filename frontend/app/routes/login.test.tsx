@@ -23,6 +23,12 @@ describe("Login route component", () => {
     expect(await screen.findByText("Password is required")).toBeInTheDocument();
   });
 
+  it("posts the form natively so a pre-hydration submit never puts the password in the URL", () => {
+    const { container } = renderLogin(undefined);
+
+    expect(container.querySelector("form")).toHaveAttribute("method", "post");
+  });
+
   it("shows a server-provided error", () => {
     renderLogin({ error: "Invalid credentials" });
 

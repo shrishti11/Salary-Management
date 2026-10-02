@@ -58,7 +58,7 @@ export default function Login({ actionData }: Pick<Route.ComponentProps, "action
 
   return (
     <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-      <Paper sx={{ p: 4, width: 360 }} component="form" onSubmit={handleSubmit(onSubmit)}>
+      <Paper sx={{ p: 4, width: 360 }} component="form" method="post" onSubmit={handleSubmit(onSubmit)}>
         <Typography variant="h5" component="h1" gutterBottom>
           Sign in
         </Typography>
