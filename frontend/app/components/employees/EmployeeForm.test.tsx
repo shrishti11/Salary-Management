@@ -47,6 +47,12 @@ describe("EmployeeForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
+  it("focuses the first invalid field on submit", async () => {
+    setup();
+    await userEvent.click(screen.getByRole("button", { name: "Save employee" }));
+    await waitFor(() => expect(screen.getByLabelText("Employee ID")).toHaveFocus());
+  });
+
   it("rejects an invalid email and a future date", async () => {
     setup();
     await userEvent.type(screen.getByLabelText("Email"), "nope");

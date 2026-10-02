@@ -59,9 +59,10 @@ export default function EmployeeForm({
     <Controller
       name={name}
       control={control}
-      render={({ field }) => (
+      render={({ field: { ref, ...field } }) => (
         <TextField
           {...field}
+          inputRef={ref}
           id={`employee-${name}`}
           label={label}
           fullWidth
@@ -81,9 +82,10 @@ export default function EmployeeForm({
     <Controller
       name={name}
       control={control}
-      render={({ field }) => (
+      render={({ field: { ref, ...field } }) => (
         <TextField
           {...field}
+          inputRef={ref}
           id={`employee-${name}`}
           select
           label={label}

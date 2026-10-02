@@ -29,7 +29,7 @@ export async function action({ request, params }: Route.ActionArgs): Promise<{ m
 
 export function ErrorBoundary() {
   const error = useRouteError();
-  const notFound = isRouteErrorResponse(error) && error.status === 404;
+  const notFound = isRouteErrorResponse(error) && (error.status === 404 || error.status === 400);
 
   return (
     <>
@@ -66,8 +66,10 @@ export default function EmployeeProfile() {
 
   const notice = NOTICES[searchParams.get("notice") ?? ""];
   useEffect(() => {
-    if (notice) setToast({ severity: "success", text: notice });
-  }, [notice]);
+    if (!notice) return;
+    setToast({ severity: "success", text: notice });
+    setSearchParams({}, { replace: true });
+  }, [notice, setSearchParams]);
 
   useEffect(() => {
     const data = fetcher.data;
@@ -83,7 +85,6 @@ export default function EmployeeProfile() {
 
   const closeToast = () => {
     setToast(null);
-    if (searchParams.has("notice")) setSearchParams({}, { replace: true });
   };
 
   const saving = fetcher.state !== "idle";
@@ -155,7 +156,7 @@ export default function EmployeeProfile() {
 
       <Snackbar open={toast !== null} autoHideDuration={5000} onClose={closeToast}>
         {toast ? (
-          <Alert severity={toast.severity} onClose={closeToast} role="status">
+          <Alert severity={toast.severity} onClose={closeToast} role={toast.severity === "error" ? "alert" : "status"}>
             {toast.text}
           </Alert>
         ) : undefined}

@@ -57,7 +57,7 @@ All routes require a session with role `ADMIN` or `HR_MANAGER` (401 unauthentica
 |---|---|---|
 | `GET /api/departments` | List departments | `{ departments: [{id, name}] }` |
 | `GET /api/employees` | Directory list | Query: `page`, `pageSize` (1-100, default 20), `q`, `departmentId`, `country`, `status`, `sortBy` (`employeeCode`, `name`, `department`, `designation`, `country`, `joiningDate`, `status`), `sortOrder` (`asc`/`desc`). Strict: unknown params -> 400. Returns `{ data, pagination }` |
-| `POST /api/employees` | Create | 201; 400 `VALIDATION_ERROR`/`INVALID_DEPARTMENT`; 409 `DUPLICATE_EMPLOYEE_CODE`/`DUPLICATE_EMAIL` |
+| `POST /api/employees` | Create | 201; 400 `VALIDATION_ERROR`/`INVALID_DEPARTMENT`; 409 `DUPLICATE_EMPLOYEE_CODE`/`DUPLICATE_EMAIL` (generic fallback `DUPLICATE_EMPLOYEE` only if the clashing row vanishes between the unique violation and the lookup) |
 | `GET /api/employees/:id` | Read | 404 `EMPLOYEE_NOT_FOUND` |
 | `PATCH /api/employees/:id` | Partial update | `employeeCode` and `status` rejected (400); 404/409 |
 | `PATCH /api/employees/:id/status` | Activate/deactivate | `{status: "ACTIVE"|"INACTIVE"}` |
@@ -79,7 +79,7 @@ All routes require a session with role `ADMIN` or `HR_MANAGER` (401 unauthentica
 The nine from the spec: (1) Department is its own table; (2) country stored as ISO alpha-2 `CHAR(2)` with a static list for names; (3) `employeeCode` unique, normalised, immutable; (4) `email` unique, normalised, editable; (5) status via a dedicated PATCH, no DELETE; (6) both roles read and write, with explicit `requireRole`; (7) uniqueness from DB constraints, Prisma `P2002` mapped to 409; (8) inactive employees stay listed (default filter "All") and remain viewable/editable; (9) no new dependencies.
 
 Added during implementation:
-- List state (search, filters, sort, page, page size) lives in the URL query; the loader canonicalises it (invalid page size or out-of-range page redirects to a valid URL).
+- List state (search, filters, sort, page, page size) lives in the URL query; invalid values fall back to defaults; an out-of-range page redirects to the last page.
 - Create/edit forms submit JSON via `encType: "application/json"`; the status change is a plain form post on the profile.
 - A `?notice=created|updated` query param on the profile drives the success toast and is cleared after display.
 
@@ -97,6 +97,7 @@ Added during implementation:
 - The static country list is duplicated in backend (`lib/countries.ts`) and frontend (`lib/countries.ts`); keep in sync.
 - 400 responses carry no per-field details, so only 409 and `INVALID_DEPARTMENT` map to form fields.
 - Joining-date "not in the future" is evaluated in UTC on the server and in local time in the browser.
+- 409 responses use `DUPLICATE_EMPLOYEE_CODE` or `DUPLICATE_EMAIL`; the generic fallback code `DUPLICATE_EMPLOYEE` is returned only if the clashing row vanishes between the unique violation and the lookup.
 - Directory default status filter is "All" (inactive employees are included).
 - ADMIN and HR_MANAGER permissions are identical for now.
 - Profile has no compensation or audit sections yet.
@@ -109,6 +110,10 @@ Added during implementation:
 - Backend and frontend country lists are duplicated (see above).
 - No per-field details in 400 responses.
 - ADMIN-role login is not exercised in tests (only HR_MANAGER and a forged role).
+- Filter selects snap back to the old value until the loader finishes (they are controlled by loader data).
+- Joining-date "today" is evaluated in UTC on the server vs local time in the browser; users east of UTC may see a bare "Validation failed" for today's date.
+- The employee form has no `method="post"`, so a submit before hydration would use GET (PII in the query string).
+- Seed upserts by `employeeCode` only and could throw P2002 if an employee with the same email already exists under another code.
 - Profile status toast dismissal is untested.
 - React Hook Form refs attach to the `TextField` root, so focus-first-error does not focus the input.
 - Search box has no `maxLength` (server caps `q` at 100 and returns 400 beyond it).

@@ -144,6 +144,14 @@ describe("GET /api/employees/:id", () => {
   });
 });
 
+describe("DELETE /api/employees/:id", () => {
+  it("is not supported: 404 and the employee remains", async () => {
+    const created = await create();
+    expect((await agent.delete(`/api/employees/${created.id}`)).status).toBe(404);
+    expect((await agent.get(`/api/employees/${created.id}`)).status).toBe(200);
+  });
+});
+
 describe("PATCH /api/employees/:id", () => {
   it("updates only the supplied fields", async () => {
     const created = await create({ phone: "+91 98765 43210" });

@@ -136,3 +136,45 @@ describe("GET /api/employees", () => {
     expect((await list(bad)).status).toBe(400);
   });
 });
+
+describe("GET /api/employees search finds literal wildcard characters", () => {
+  let deptC: string;
+
+  beforeAll(async () => {
+    deptC = (await prisma.department.create({ data: { name: `List Dept C ${SUFFIX}` } })).id;
+    const rows = [
+      { n: "101", last: "Plain", email: `under_score.${SUFFIX}@example.com` },
+      { n: "102", last: "Fifty%", email: `fifty.${SUFFIX}@example.com` },
+      { n: "103", last: "Back\\slash", email: `back.${SUFFIX}@example.com` },
+    ];
+    await prisma.employee.createMany({
+      data: rows.map((r) => ({
+        employeeCode: `${P}-${r.n}`,
+        firstName: "Wild",
+        lastName: r.last,
+        email: r.email,
+        departmentId: deptC,
+        designation: "Tester",
+        country: "IN",
+        joiningDate: date("2020-01-01"),
+      })),
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.employee.deleteMany({ where: { departmentId: deptC } });
+    await prisma.department.delete({ where: { id: deptC } });
+  });
+
+  const find = (q: string) => agent.get("/api/employees").query({ departmentId: deptC, q });
+
+  it.each([
+    ["under_score", "101"],
+    ["Fifty%", "102"],
+    ["Back\\slash", "103"],
+  ])("q=%s returns only the matching row", async (q, code) => {
+    const response = await find(q);
+    expect(response.status).toBe(200);
+    expect(codes(response.body)).toEqual([code]);
+  });
+});

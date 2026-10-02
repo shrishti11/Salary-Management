@@ -86,6 +86,14 @@ describe("employee profile page", () => {
     expect(await screen.findByText("Employee created")).toBeInTheDocument();
   });
 
+  it("strips ?notice from the URL once read, keeping the toast", async () => {
+    stubBackend(() => json({ employee }));
+    const router = renderAt("/employees/e1?notice=created");
+    expect(await screen.findByText("Employee created")).toBeInTheDocument();
+    await waitFor(() => expect(router.state.location.search).toBe(""));
+    expect(screen.getByText("Employee created")).toBeInTheDocument();
+  });
+
   it("shows the updated notice", async () => {
     stubBackend(() => json({ employee }));
     renderAt("/employees/e1?notice=updated");
@@ -162,6 +170,7 @@ describe("employee profile page", () => {
 
     expect(await screen.findByText("Request failed")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(screen.getByRole("alert")).toHaveTextContent("Request failed");
     expect(screen.getByRole("heading", { name: "Asha Rao" })).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
   });
@@ -169,6 +178,14 @@ describe("employee profile page", () => {
   it("shows 'Employee not found' for a backend 404", async () => {
     stubBackend(() => json({ error: { message: "Employee not found", code: "NOT_FOUND" } }, 404));
     renderAt("/employees/e1");
+
+    expect(await screen.findByRole("heading", { name: "Employee not found" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to employees" })).toHaveAttribute("href", "/employees");
+  });
+
+  it("treats a backend 400 (malformed id) as not found", async () => {
+    stubBackend(() => json({ error: { message: "Invalid id", code: "VALIDATION_ERROR" } }, 400));
+    renderAt("/employees/abc");
 
     expect(await screen.findByRole("heading", { name: "Employee not found" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Back to employees" })).toHaveAttribute("href", "/employees");
