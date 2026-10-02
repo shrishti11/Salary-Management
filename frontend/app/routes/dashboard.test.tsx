@@ -139,10 +139,22 @@ describe("Dashboard route", () => {
     expect(screen.getByText(/Hannah HR/)).toBeInTheDocument();
   });
 
+  it("pluralises the employee count", async () => {
+    renderDashboard(() => json(dashboard));
+    expect(await screen.findByText("1 employee")).toBeInTheDocument();
+    expect(screen.getByText("4 employees")).toBeInTheDocument();
+  });
+
   it("(f) handles empty data", async () => {
     renderDashboard(() => json(empty));
     expect(await screen.findByText("No salary data yet")).toBeInTheDocument();
     expect(screen.getAllByText("No recent activity")).toHaveLength(2);
+  });
+
+  it("shows empty messages for departments and countries", async () => {
+    renderDashboard(() => json(empty));
+    expect(await screen.findByText("No departments yet")).toBeInTheDocument();
+    expect(screen.getByText("No countries yet")).toBeInTheDocument();
   });
 
   it("(g) shows an error with retry when the API fails", async () => {

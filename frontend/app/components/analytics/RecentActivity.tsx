@@ -25,9 +25,9 @@ function change(percent: string | null) {
 
 export default function RecentActivity({ recentEmployees, recentRevisions }: Props) {
   return (
-    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" } }}>
+    <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, "& > *": { minWidth: 0 } }}>
       <ChartCard title="Recent employees" empty={recentEmployees.length === 0 ? EMPTY : undefined}>
-        <List dense disablePadding>
+        <List dense disablePadding sx={{ overflowWrap: "anywhere" }}>
           {recentEmployees.map((e) => (
             <ListItem key={e.id} disableGutters>
               <ListItemText
@@ -39,7 +39,7 @@ export default function RecentActivity({ recentEmployees, recentRevisions }: Pro
         </List>
       </ChartCard>
       <ChartCard title="Recent salary revisions" empty={recentRevisions.length === 0 ? EMPTY : undefined}>
-        <List dense disablePadding>
+        <List dense disablePadding sx={{ overflowWrap: "anywhere" }}>
           {recentRevisions.map((r) => (
             <ListItem key={r.id} disableGutters>
               <ListItemText

@@ -1,4 +1,4 @@
-import { Alert, Box, Button, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { Link, useLoaderData, useRouteLoaderData } from "react-router";
 
 import BarChartCard from "~/components/analytics/BarChartCard";
@@ -70,14 +70,14 @@ export default function Dashboard() {
           subtitle={`Active employees · gross per period · as of ${asOf}`}
           empty={metrics.currencies.length === 0 ? "No salary data yet" : undefined}
         >
-          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "repeat(auto-fit, minmax(220px, 1fr))" } }}>
+          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(auto-fit, minmax(220px, 1fr))" } }}>
             {metrics.currencies.map((c) => (
               <Paper key={c.currency} variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="subtitle1" component="h3">
                   <strong>{c.currency}</strong>
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {c.count} employees
+                  {c.count} {c.count === 1 ? "employee" : "employees"}
                 </Typography>
                 <Typography variant="body2">Total {formatMoney(c.total, c.currency)}</Typography>
                 <Typography variant="body2">Average {formatMoney(c.average, c.currency)}</Typography>
@@ -88,14 +88,15 @@ export default function Dashboard() {
         </ChartCard>
       </Box>
 
-      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, mb: 2 }}>
+      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, "& > *": { minWidth: 0 }, mb: 2 }}>
         <ChartCard title="By department" subtitle={GROUP_SUBTITLE} empty={departments.length === 0 ? "No departments yet" : undefined}>
           <BarChartCard
             ariaLabel="Headcount by department"
             valueLabel="Employees"
             data={departments.map((d) => ({ label: d.name, value: d.headcount }))}
           />
-          <Table size="small" aria-label="Departments">
+          <TableContainer>
+<Table size="small" aria-label="Departments">
             <TableHead>
               <TableRow>
                 <TableCell>Department</TableCell>
@@ -115,6 +116,7 @@ export default function Dashboard() {
               ))}
             </TableBody>
           </Table>
+</TableContainer>
         </ChartCard>
         <ChartCard title="By country" subtitle={GROUP_SUBTITLE} empty={countries.length === 0 ? "No countries yet" : undefined}>
           <BarChartCard
@@ -122,7 +124,8 @@ export default function Dashboard() {
             valueLabel="Employees"
             data={countries.map((c) => ({ label: countryName(c.country), value: c.headcount }))}
           />
-          <Table size="small" aria-label="Countries">
+          <TableContainer>
+<Table size="small" aria-label="Countries">
             <TableHead>
               <TableRow>
                 <TableCell>Country</TableCell>
@@ -142,6 +145,7 @@ export default function Dashboard() {
               ))}
             </TableBody>
           </Table>
+</TableContainer>
         </ChartCard>
       </Box>
 
