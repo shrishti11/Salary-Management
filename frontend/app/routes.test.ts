@@ -11,4 +11,13 @@ describe("route config", () => {
     expect(layoutEntry).toBeDefined();
     expect(layoutEntry?.children?.some((c) => c.path === "dashboard")).toBe(true);
   });
+
+  it("registers the employee routes under the authenticated layout", async () => {
+    const config = await routes;
+    const layoutEntry = config.find((r) => r.file === `${AUTHENTICATED_ROUTE_ID}.tsx`);
+    const paths = layoutEntry?.children?.map((c) => c.path);
+
+    // later tasks extend this with employees/new, employees/:id, employees/:id/edit
+    expect(paths).toEqual(expect.arrayContaining(["employees"]));
+  });
 });
