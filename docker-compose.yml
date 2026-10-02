@@ -23,6 +23,11 @@ services:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/salary_management?schema=public
+      # DEV-ONLY secret (min 32 chars). Override JWT_SECRET for any real deployment.
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-change-me-0123456789}
+      JWT_EXPIRES_IN: 1d
+      COOKIE_NAME: session
+      FRONTEND_URL: http://localhost:3000
     ports:
       - "3001:3001"
     depends_on:
@@ -33,6 +38,9 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # SSR server calls the API server-side over the compose network.
+        VITE_API_URL: http://backend:3001
     environment:
       NODE_ENV: production
       PORT: 3000
