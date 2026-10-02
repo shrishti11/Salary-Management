@@ -1,5 +1,8 @@
 import { Prisma } from "../../../generated/prisma/client.ts";
 import { prisma } from "../../lib/prisma.ts";
+import { monthsBetween, startOfMonthsAgo, todayUtc } from "./analytics.dates.ts";
+import { AppError } from "../../middleware/error.middleware.ts";
+import type { TrendsQuery } from "./analytics.schema.ts";
 import { STATS_COLUMNS, populationCtes, employeeConditions, type PopulationFilters } from "./analytics.sql.ts";
 
 export interface CurrencyStats {
@@ -179,4 +182,93 @@ export async function getFilterOptions() {
     designations: designations.map((d) => d.designation),
     currencies: currencies.map((c) => c.currency),
   };
+}
+
+const MAX_TREND_MONTHS = 60;
+
+export interface TrendMonth {
+  month: string;
+  revisionCount: number;
+  newSalaryCount: number;
+  avgChangePercent: string | null;
+  avgGross: string | null;
+  avgNet: string | null;
+}
+
+export async function getTrends(query: TrendsQuery) {
+  const today = todayUtc();
+  const to = query.to ?? today;
+  const from = query.from ?? startOfMonthsAgo(to, 11);
+  if (to > today) throw new AppError(400, "`to` cannot be in the future", "INVALID_DATE_RANGE");
+  if (from > to) throw new AppError(400, "`from` must not be after `to`", "INVALID_DATE_RANGE");
+  const months = monthsBetween(from, to);
+  if (months.length > MAX_TREND_MONTHS) {
+    throw new AppError(400, `Range may not exceed ${MAX_TREND_MONTHS} months`, "INVALID_DATE_RANGE");
+  }
+
+  const f: PopulationFilters = { ...query, asOf: to };
+  // The window needs every record per employee (to find the previous one); the range is applied in the outer query.
+  const rows = await prisma.$queryRaw<
+    { currency: string; month: string; revisionCount: number; newSalaryCount: number; avgChange: string | null; avgGross: string; avgNet: string }[]
+  >(Prisma.sql`
+    WITH emp AS (
+      SELECT e.id FROM "Employee" e WHERE ${employeeConditions(f)}
+    ),
+    sums AS (
+      SELECT sr.id, sr."employeeId", sr.currency, sr."effectiveDate",
+        COALESCE(SUM(sc.amount) FILTER (WHERE sc.type <> 'DEDUCTION'), 0) AS gross,
+        COALESCE(SUM(sc.amount) FILTER (WHERE sc.type = 'DEDUCTION'), 0) AS deductions
+      FROM "SalaryRecord" sr
+      JOIN emp ON emp.id = sr."employeeId"
+      LEFT JOIN "SalaryComponent" sc ON sc."salaryRecordId" = sr.id
+      GROUP BY sr.id
+    ),
+    seq AS (
+      SELECT s.*, ${query.basis === "net" ? Prisma.sql`(s.gross - s.deductions)` : Prisma.sql`s.gross`} AS v,
+        ROW_NUMBER() OVER w AS rn,
+        LAG(s.currency) OVER w AS prev_currency,
+        LAG(${query.basis === "net" ? Prisma.sql`(s.gross - s.deductions)` : Prisma.sql`s.gross`}) OVER w AS prev_v
+      FROM sums s
+      WINDOW w AS (PARTITION BY s."employeeId" ORDER BY s."effectiveDate")
+    )
+    SELECT currency,
+      to_char("effectiveDate", 'YYYY-MM') AS month,
+      (COUNT(*) FILTER (WHERE rn > 1))::int AS "revisionCount",
+      (COUNT(*) FILTER (WHERE rn = 1))::int AS "newSalaryCount",
+      ROUND(AVG(CASE WHEN rn > 1 AND prev_currency = currency AND prev_v > 0 THEN (v - prev_v) / prev_v * 100 END), 2)::text AS "avgChange",
+      ROUND(AVG(gross), 2)::text AS "avgGross",
+      ROUND(AVG(gross - deductions), 2)::text AS "avgNet"
+    FROM seq
+    WHERE "effectiveDate" BETWEEN ${from}::date AND ${to}::date
+      ${query.currency ? Prisma.sql`AND currency = ${query.currency}` : Prisma.empty}
+    GROUP BY currency, 2
+    ORDER BY currency, 2`);
+
+  const byCurrency = new Map<string, Map<string, TrendMonth>>();
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const map = byCurrency.get(row.currency) ?? new Map<string, TrendMonth>();
+    map.set(row.month, {
+      month: row.month,
+      revisionCount: row.revisionCount,
+      newSalaryCount: row.newSalaryCount,
+      avgChangePercent: row.avgChange,
+      avgGross: row.avgGross,
+      avgNet: row.avgNet,
+    });
+    byCurrency.set(row.currency, map);
+    totals.set(row.currency, (totals.get(row.currency) ?? 0) + row.revisionCount + row.newSalaryCount);
+  }
+
+  const currencies = [...byCurrency.entries()]
+    .sort(([a], [b]) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0) || a.localeCompare(b))
+    .map(([currency, map]) => ({
+      currency,
+      months: months.map(
+        (month): TrendMonth =>
+          map.get(month) ?? { month, revisionCount: 0, newSalaryCount: 0, avgChangePercent: null, avgGross: null, avgNet: null },
+      ),
+    }));
+
+  return { from, to, basis: query.basis, currencies };
 }

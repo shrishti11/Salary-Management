@@ -1,7 +1,8 @@
 import type { Request, Response } from "express";
 
-import { asOfQuerySchema, groupsQuerySchema } from "./analytics.schema.ts";
-import { getDistribution, getFilterOptions, getGroups, getSummary } from "./analytics.service.ts";
+import { asOfQuerySchema, emptyQuerySchema, groupsQuerySchema, trendsQuerySchema } from "./analytics.schema.ts";
+import { getDistribution, getFilterOptions, getGroups, getSummary, getTrends } from "./analytics.service.ts";
+import { getDashboard } from "./dashboard.service.ts";
 
 export async function summaryHandler(request: Request, response: Response) {
   const query = asOfQuerySchema.parse(request.query);
@@ -18,4 +19,13 @@ export async function groupsHandler(request: Request, response: Response) {
 
 export async function filterOptionsHandler(_request: Request, response: Response) {
   response.status(200).json(await getFilterOptions());
+}
+
+export async function trendsHandler(request: Request, response: Response) {
+  response.status(200).json(await getTrends(trendsQuerySchema.parse(request.query)));
+}
+
+export async function dashboardHandler(request: Request, response: Response) {
+  emptyQuerySchema.parse(request.query);
+  response.status(200).json(await getDashboard());
 }
