@@ -1161,7 +1161,7 @@ export async function getRecentRevisions(limit = RECENT) {
 export async function getDashboard() {
   const asOf = todayUtc();
   const filters = { status: "ACTIVE", basis: "gross", asOf } as const;
-  const groupFilters = (groupBy: GroupFilters["groupBy"]): GroupFilters => ({ ...filters, groupBy });
+  const groupFilters = (groupBy: GroupFilters["groupBy"]): GroupFilters => ({ ...filters, groupBy, suppress: false });
 
   const [summary, deptGroups, countryGroups, departments, totalEmployees, recentEmployees, recentRevisions] = await Promise.all([
     getSummary(filters),
@@ -1177,14 +1177,7 @@ export async function getDashboard() {
     getRecentRevisions(RECENT),
   ]);
 
-  // Dashboard shows total and average only; suppressed entries (fewer than 3) are not applicable here, so re-expose stats.
-  const money = (group: GroupRow) =>
-    group.currencies.map((c) => ("suppressed" in c ? { currency: c.currency, count: c.count, total: null, average: null } : { currency: c.currency, count: c.count, total: c.total, average: c.average }));
-```
-
-STOP: the dashboard must show department totals even for small groups (the spec's suppression applies to `/groups` comparison). `getGroups` therefore needs a `suppress` switch. Implement it as: `GroupFilters` gains optional `suppress?: boolean` (default `true`); when `false`, entries are never suppressed. Dashboard passes `suppress: false`, and `money` is then simply `group.currencies` mapped to `{ currency, count, total, average }` (all entries are full `CurrencyStats`). Update `getGroups` and add a test in `analytics.groups.test.ts` is NOT needed (dashboard test covers it: dept B shows `INR count 1 total 120000.00`). Final `getDashboard`:
-
-```ts
+  // The dashboard shows department/country money even for small groups: `suppress: false` (suppression is for the comparison view).
   const mapMoney = (group: GroupRow) =>
     group.currencies.flatMap((c) => ("suppressed" in c ? [] : [{ currency: c.currency, count: c.count, total: c.total, average: c.average }]));
 
@@ -1221,7 +1214,7 @@ STOP: the dashboard must show department totals even for small groups (the spec'
 }
 ```
 
-(Use this final form; discard the in-progress `money` helper above. Write the file cleanly with the `suppress` flag.) In `getGroups`, change the suppression line to `const entry: GroupCurrency = f.suppress !== false && stat.count < MIN_GROUP_SIZE ? {...suppressed} : stat;`. `summary.headcount.active` counts active employees under the `ACTIVE` default (the headcount ignores the status filter anyway); `summary.headcount.withoutSalary` is for active employees.
+`GroupFilters` (Task 2) gains an optional `suppress?: boolean` (default `true`). In `getGroups`, change the suppression line to `const entry: GroupCurrency = f.suppress !== false && stat.count < MIN_GROUP_SIZE ? {...suppressed} : stat;`. `summary.headcount.active` counts active employees under the `ACTIVE` default (the headcount ignores the status filter anyway); `summary.headcount.withoutSalary` is for active employees.
 
 Controller additions: `trendsHandler` (`trendsQuerySchema.parse(request.query)` → `getTrends`), `dashboardHandler` (`emptyQuerySchema.parse(request.query)` → `getDashboard()`). Routes: `analyticsRouter.get("/trends", trendsHandler)`; `dashboard.routes.ts`:
 
