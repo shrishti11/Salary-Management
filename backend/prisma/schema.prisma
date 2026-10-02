@@ -18,14 +18,15 @@ enum Role {
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  passwordHash String
-  name         String
-  role         Role     @default(HR_MANAGER)
-  isActive     Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String         @id @default(uuid())
+  email         String         @unique
+  passwordHash  String
+  name          String
+  role          Role           @default(HR_MANAGER)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  salaryRecords SalaryRecord[]
 }
 
 enum EmployeeStatus {
@@ -42,23 +43,58 @@ model Department {
 }
 
 model Employee {
-  id           String         @id @default(uuid())
-  employeeCode String         @unique
-  firstName    String
-  lastName     String
-  email        String         @unique
-  phone        String?
-  departmentId String
-  department   Department     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
-  designation  String
-  country      String         @db.Char(2)
-  joiningDate  DateTime       @db.Date
-  status       EmployeeStatus @default(ACTIVE)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  employeeCode  String         @unique
+  firstName     String
+  lastName      String
+  email         String         @unique
+  phone         String?
+  departmentId  String
+  department    Department     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  designation   String
+  country       String         @db.Char(2)
+  joiningDate   DateTime       @db.Date
+  status        EmployeeStatus @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  salaryRecords SalaryRecord[]
 
   @@index([status])
   @@index([departmentId])
   @@index([country])
   @@index([lastName, firstName])
+}
+
+enum SalaryComponentType {
+  BASE
+  ALLOWANCE
+  BONUS
+  DEDUCTION
+}
+
+model SalaryRecord {
+  id            String            @id @default(uuid())
+  employeeId    String
+  employee      Employee          @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  currency      String            @db.Char(3)
+  effectiveDate DateTime          @db.Date
+  reason        String
+  createdById   String
+  createdBy     User              @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime          @default(now())
+  components    SalaryComponent[]
+
+  @@unique([employeeId, effectiveDate])
+  @@index([effectiveDate])
+}
+
+model SalaryComponent {
+  id             String              @id @default(uuid())
+  salaryRecordId String
+  salaryRecord   SalaryRecord        @relation(fields: [salaryRecordId], references: [id], onDelete: Cascade)
+  type           SalaryComponentType
+  name           String
+  amount         Decimal             @db.Decimal(14, 2)
+
+  @@unique([salaryRecordId, type, name])
 }

@@ -54,4 +54,16 @@ describe("AppLayout", () => {
     expect(screen.getByRole("link", { name: "Employees" })).toHaveClass("Mui-selected");
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveClass("Mui-selected");
   });
+
+  it("highlights Salaries (and only Salaries) on the salary directory", () => {
+    const router = createMemoryRouter(
+      [{ path: "/", Component: AppLayout, children: [{ path: "salaries", Component: () => <div>directory</div> }] }],
+      { initialEntries: ["/salaries?status=ALL"] },
+    );
+
+    render(<RouterProvider router={router} />);
+
+    expect(screen.getByRole("link", { name: "Salaries" })).toHaveClass("Mui-selected");
+    expect(screen.getByRole("link", { name: "Employees" })).not.toHaveClass("Mui-selected");
+  });
 });

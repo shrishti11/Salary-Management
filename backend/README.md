@@ -8,7 +8,7 @@ Express 5 + Prisma 7 + PostgreSQL, run with Bun/tsx.
 cp .env.example .env     # set JWT_SECRET to 32+ random characters
 bun install
 bun run db:deploy        # prisma migrate deploy
-bun run db:seed          # dev admin (admin@salary-management.local / ChangeMe123!) + sample departments/employees
+bun run db:seed          # dev admin (admin@salary-management.local / ChangeMe123!) + sample departments/employees/salary history
 bun run dev              # http://localhost:3001
 ```
 
@@ -21,7 +21,7 @@ bun run dev              # http://localhost:3001
 | `prisma:generate` | Generate the client into `generated/prisma` (gitignored; generated in the Docker build) |
 | `prisma:migrate` | `prisma migrate dev` (create/apply migrations in development) |
 | `db:deploy` | `prisma migrate deploy` (used by the Docker CMD) |
-| `db:seed` | Upsert the dev admin user, 6 departments and 5 sample employees `EMP-0001`..`EMP-0005` (idempotent) |
+| `db:seed` | Upsert the dev admin user, 6 departments and 5 sample employees `EMP-0001`..`EMP-0005`, and create salary history for `EMP-0001`..`EMP-0003` (idempotent; an employee that already has salary records is skipped) |
 
 ## Environment variables
 
@@ -51,6 +51,19 @@ Employees and departments require a session with role `ADMIN` or `HR_MANAGER` (4
 - `GET /api/employees/:id` -> `{ employee }`; 404 `EMPLOYEE_NOT_FOUND`
 - `PATCH /api/employees/:id` partial update; `employeeCode` and `status` are rejected (400); 404/409 as above
 - `PATCH /api/employees/:id/status` `{status}` -> `{ employee }`; there is no DELETE route
+
+Salaries use the same roles and live under `/api/employees/:id/salaries`. Records are append-only (no PATCH or DELETE). Amounts are decimal strings; totals are computed server-side (gross = base + allowances + bonuses, net = gross - deductions).
+
+- `GET /api/employees/:id/salaries` -> `{ current, scheduled, history }` (`history` newest first; each record has `components`, `totals`, `changeFromPrevious` and `status` `CURRENT`/`SCHEDULED`/`PREVIOUS`; `scheduled` is the nearest upcoming future-dated record). 404 `EMPLOYEE_NOT_FOUND`
+- `POST /api/employees/:id/salaries` `{currency, effectiveDate, reason?, components: [{type, name, amount}]}` -> 201 `{ salary }`. Exactly one `BASE` component; `reason` (3-500 chars) is required for a revision; effective date must not precede the joining date and must be after the newest record. 400 `VALIDATION_ERROR` / `REASON_REQUIRED` / `EFFECTIVE_DATE_BEFORE_JOINING` / `NEGATIVE_NET`; 404 `EMPLOYEE_NOT_FOUND`; 409 `EMPLOYEE_INACTIVE` / `DUPLICATE_EFFECTIVE_DATE` (same date as the newest record) / `EFFECTIVE_DATE_NOT_AFTER_LATEST` (earlier date)
+- `GET /api/employees/:id/salaries/:salaryId` -> `{ salary }`; 404 `SALARY_NOT_FOUND` (also for another employee's record)
+
+### Salary directory
+
+`GET /api/salaries` (ADMIN and HR_MANAGER) lists every employee with their current salary, for a company-wide read-only view.
+
+- Query: `page` (default 1), `pageSize` (1-100, default 20), `q` (name, employee ID or email), `departmentId`, `country`, `status` (`ACTIVE` default, `INACTIVE`, `ALL`), `salary` (`with` / `without` a current salary), `sortBy` (`name` default, `employeeCode`, `department`, `country`, `effectiveDate`), `sortOrder` (`asc` default, `desc`). Unknown keys and invalid values return 400 `VALIDATION_ERROR`.
+- Response: `{ data: [{ employee: { id, employeeCode, firstName, lastName, email, department, country, status }, current: { id, currency, effectiveDate, gross, net, deductions, reason } | null, hasScheduled }], pagination: { page, pageSize, total, totalPages } }`. Amounts are decimal strings in the record's own currency; there is no amount sorting because currencies differ.
 
 Errors use `{ "error": { "message", "code?" } }`; `ZodError` maps to 400 `VALIDATION_ERROR`.
 

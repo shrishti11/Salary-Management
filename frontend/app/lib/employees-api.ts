@@ -116,7 +116,7 @@ export function toSearchParams(params: Partial<ListParams>): URLSearchParams {
   return search;
 }
 
-async function call<T>(request: Request, path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
+export async function apiCall<T>(request: Request, path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
   const response = await apiFetchAs(request, path, init);
 
   if (response.status === 401) throw redirect("/login");
@@ -136,36 +136,36 @@ async function call<T>(request: Request, path: string, init: RequestInit = {}): 
 
 export function listEmployees(request: Request, params: ListParams) {
   const query = toSearchParams(params).toString();
-  return call<{ data: Employee[]; pagination: Pagination }>(
+  return apiCall<{ data: Employee[]; pagination: Pagination }>(
     request,
     `/api/employees${query ? `?${query}` : ""}`,
   );
 }
 
 export function listDepartments(request: Request) {
-  return call<{ departments: Department[] }>(request, "/api/departments");
+  return apiCall<{ departments: Department[] }>(request, "/api/departments");
 }
 
 export function getEmployee(request: Request, id: string) {
-  return call<{ employee: Employee }>(request, `/api/employees/${id}`);
+  return apiCall<{ employee: Employee }>(request, `/api/employees/${id}`);
 }
 
 export function createEmployee(request: Request, input: EmployeeInput) {
-  return call<{ employee: Employee }>(request, "/api/employees", {
+  return apiCall<{ employee: Employee }>(request, "/api/employees", {
     method: "POST",
     body: JSON.stringify(input),
   });
 }
 
 export function updateEmployee(request: Request, id: string, input: Partial<EmployeeInput>) {
-  return call<{ employee: Employee }>(request, `/api/employees/${id}`, {
+  return apiCall<{ employee: Employee }>(request, `/api/employees/${id}`, {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 }
 
 export function setEmployeeStatus(request: Request, id: string, status: EmployeeStatus) {
-  return call<{ employee: Employee }>(request, `/api/employees/${id}/status`, {
+  return apiCall<{ employee: Employee }>(request, `/api/employees/${id}/status`, {
     method: "PATCH",
     body: JSON.stringify({ status }),
   });

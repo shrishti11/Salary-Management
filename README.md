@@ -20,7 +20,7 @@ Stack: Bun, Express 5 + Prisma 7 + PostgreSQL (backend), React Router v8 (SSR) +
 ```bash
 cp .env.example .env                          # then set JWT_SECRET, e.g. the output of: openssl rand -hex 32
 docker compose up --build
-docker compose exec backend bun run db:seed   # one-time: dev admin + sample departments and employees
+docker compose exec backend bun run db:seed   # one-time: dev admin + sample departments, employees and salary history
 ```
 
 The backend applies pending migrations on start. Seeding is manual so it never runs automatically in a production-like container.
@@ -37,7 +37,9 @@ Note: in compose `NODE_ENV=production`, so the session cookie is `Secure`. Brows
 
 - Auth: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
 - Employees (ADMIN and HR_MANAGER): `GET/POST /api/employees`, `GET/PATCH /api/employees/:id`, `PATCH /api/employees/:id/status`; `GET /api/departments`
-- UI routes: `/employees` (directory), `/employees/new`, `/employees/:id` (profile, activate/deactivate), `/employees/:id/edit`
+- Salaries (ADMIN and HR_MANAGER): `GET/POST /api/employees/:id/salaries`, `GET /api/employees/:id/salaries/:salaryId` (append-only; a revision never overwrites earlier records)
+- Salary directory (ADMIN and HR_MANAGER): `GET /api/salaries` (current salary per employee; search, filters, sorting, pagination)
+- UI routes: `/salaries` (salary directory), `/employees` (directory), `/employees/new`, `/employees/:id` (profile with compensation section, activate/deactivate), `/employees/:id/edit`
 
 Details: [`backend/README.md`](backend/README.md), [`frontend/README.md`](frontend/README.md), [`docs/implementation/`](docs/implementation/).
 
@@ -50,7 +52,7 @@ cd backend
 cp .env.example .env                   # then set JWT_SECRET (32+ chars)
 bun install
 bun run db:deploy                      # apply migrations
-bun run db:seed                        # dev admin + 6 departments + 5 sample employees
+bun run db:seed                        # dev admin + 6 departments + 5 sample employees + salary history for EMP-0001..0003
 bun run dev                            # http://localhost:3001
 
 cd ../frontend                         # in another terminal
