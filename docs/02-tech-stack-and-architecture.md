@@ -27,7 +27,7 @@ This approach provides clear separation of responsibilities while keeping develo
 | Material UI (MUI) | UI components, forms, tables, dialogs and layouts (MUI only; no Tailwind) |
 | React Hook Form | Form state and submission handling |
 | Zod | Form data validation |
-| Recharts | Dashboard charts and analytics visualizations |
+| Recharts | Dashboard charts and analytics visualizations (installed; rendered client-side only) |
 | Vitest | Frontend unit testing |
 | React Testing Library | Component and interaction testing |
 
@@ -218,8 +218,8 @@ Endpoints will be grouped by resource, for example:
 | Employees | `/api/employees` | List and create employees |
 | Employee | `/api/employees/:id` | Retrieve and update employee details |
 | Salaries | `/api/employees/:id/salaries` | Retrieve salary history and create revisions |
-| Analytics | `/api/analytics/overview` | Retrieve dashboard metrics |
-| Analytics | `/api/analytics/salaries` | Retrieve compensation breakdowns |
+| Dashboard | `/api/dashboard` | Organisation overview, department/country summaries, recent activity |
+| Analytics | `/api/analytics/summary`, `/distribution`, `/groups`, `/trends`, `/filters` | Per-currency statistics, distribution, group comparison, trends and filter options |
 | Import | `/api/import/employees` | Import employee data |
 | Export | `/api/export/employees` | Export employee data |
 | Audit | `/api/audit-logs` | Retrieve audit history |
@@ -300,7 +300,7 @@ The application should have separate development and production configurations, 
 - Use PostgreSQL as the single source of truth.
 - Use Prisma for typed database operations and migrations.
 - Keep business logic in services rather than HTTP controllers.
-- Use server-side pagination and database-side analytics.
+- Use server-side pagination and database-side analytics. Analytics are Postgres raw SQL aggregations (`prisma.$queryRaw` with `Prisma.sql`) over one shared "current salary per employee" CTE, always per currency.
 - Maintain historical salary records instead of overwriting them.
 - Keep infrastructure and external dependencies to a minimum.
 - Design modules to be independently understandable and testable.
