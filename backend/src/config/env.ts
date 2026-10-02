@@ -1,4 +1,9 @@
+import { existsSync } from "node:fs";
+
 import { z } from "zod";
+
+// vitest and tsx do not load .env on their own.
+if (existsSync(".env")) process.loadEnvFile(".env");
 
 const environmentSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
