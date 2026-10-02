@@ -31,10 +31,12 @@ export default function EmployeeFilters({ values, departments, onChange, onClear
   }, [values.q]);
 
   useEffect(() => {
-    if (search === lastEmitted.current) return;
+    // same normalisation as parseListParams, so the URL echo equals what we emitted
+    const normalised = search.trim().slice(0, 100);
+    if (normalised === lastEmitted.current) return;
     const timer = setTimeout(() => {
-      lastEmitted.current = search;
-      onChangeRef.current({ q: search });
+      lastEmitted.current = normalised;
+      onChangeRef.current({ q: normalised });
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);

@@ -79,4 +79,18 @@ describe("EmployeeFilters", () => {
     rerender(<EmployeeFilters values={{ ...empty, q: "zed" }} departments={departments} onChange={onChange} onClear={() => {}} />);
     expect(box).toHaveValue("zed");
   });
+
+  it("keeps a trailing space when the URL echoes the trimmed search", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <EmployeeFilters values={empty} departments={departments} onChange={onChange} onClear={() => {}} />,
+    );
+    const box = screen.getByLabelText("Search");
+
+    await userEvent.type(box, "as ");
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({ q: "as" }), { timeout: 1500 });
+    rerender(<EmployeeFilters values={{ ...empty, q: "as" }} departments={departments} onChange={onChange} onClear={() => {}} />);
+
+    expect(box).toHaveValue("as ");
+  });
 });
