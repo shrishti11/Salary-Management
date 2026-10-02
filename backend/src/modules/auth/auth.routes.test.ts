@@ -39,6 +39,15 @@ describe("auth routes", () => {
     expect(response.status).toBe(401);
   });
 
+  it("rejects unparseable JSON on login with 400", async () => {
+    const response = await request(app)
+      .post("/api/auth/login")
+      .set("Content-Type", "application/json")
+      .send("{bad");
+
+    expect(response.status).toBe(400);
+  });
+
   it("rejects a malformed login body with 400", async () => {
     const response = await request(app).post("/api/auth/login").send({ email: "not-an-email" });
 

@@ -8,6 +8,12 @@ import { AppError, errorHandler, notFoundHandler } from "./error.middleware";
 function buildTestApp() {
   const app = express();
 
+  app.use(express.json());
+
+  app.post("/echo", (_request, response) => {
+    response.json({ ok: true });
+  });
+
   app.get("/boom", () => {
     throw new AppError(422, "Invalid input", "INVALID_INPUT");
   });
@@ -52,6 +58,20 @@ describe("error middleware", () => {
     expect(response.body).toEqual({
       error: { message: "Validation failed", code: "VALIDATION_ERROR" },
     });
+  });
+
+  it("returns 400 with a generic body for malformed JSON without logging", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await request(buildTestApp())
+      .post("/echo")
+      .set("Content-Type", "application/json")
+      .send("{bad");
+
+    expect(response.status).toBe(400);
+    expect(response.body).toEqual({ error: { message: "Invalid request body", code: "BAD_REQUEST" } });
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it("returns 404 for unknown routes", async () => {

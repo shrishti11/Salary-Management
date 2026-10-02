@@ -16,6 +16,18 @@ export function notFoundHandler(_request: Request, response: Response) {
   response.status(404).json({ error: { message: "Route not found" } });
 }
 
+// body-parser errors (malformed JSON, payload too large) carry a numeric 4xx status.
+function getClientErrorStatus(error: unknown): number | undefined {
+  if (typeof error !== "object" || error === null) return undefined;
+  for (const key of ["status", "statusCode"]) {
+    const value = (error as Record<string, unknown>)[key];
+    if (typeof value === "number" && Number.isInteger(value) && value >= 400 && value < 500) {
+      return value;
+    }
+  }
+  return undefined;
+}
+
 export function errorHandler(
   error: unknown,
   _request: Request,
@@ -36,6 +48,14 @@ export function errorHandler(
     response.status(error.statusCode).json({
       error: { message: error.message, ...(error.code ? { code: error.code } : {}) },
     });
+    return;
+  }
+
+  const clientErrorStatus = getClientErrorStatus(error);
+  if (clientErrorStatus !== undefined) {
+    response
+      .status(clientErrorStatus)
+      .json({ error: { message: "Invalid request body", code: "BAD_REQUEST" } });
     return;
   }
 
