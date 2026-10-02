@@ -53,11 +53,9 @@ This approach provides clear separation of responsibilities while keeping develo
 | Technology | Purpose |
 |---|---|
 | Git | Version control |
-| Yarn | Dependency management |
+| Bun | Dependency management |
 | Docker Compose | Optional local PostgreSQL setup |
 | Managed PostgreSQL | Production database hosting |
-| Render / Railway | Backend hosting |
-| Vercel / Static Hosting | Frontend hosting |
 
 ## 3. High-Level Architecture
 
