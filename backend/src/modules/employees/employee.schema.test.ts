@@ -69,6 +69,12 @@ describe("updateEmployeeSchema", () => {
     expect(updateEmployeeSchema.safeParse({}).success).toBe(false);
     expect(updateEmployeeSchema.safeParse({ employeeCode: "X1" }).success).toBe(false);
     expect(updateEmployeeSchema.safeParse({ status: "INACTIVE" }).success).toBe(false);
+    expect(
+      updateEmployeeSchema.safeParse({ designation: "Lead", employeeCode: "X1" }).success,
+    ).toBe(false);
+    expect(
+      updateEmployeeSchema.safeParse({ designation: "Lead", status: "INACTIVE" }).success,
+    ).toBe(false);
   });
 
   it("rejects blank values and clears phone with an empty string", () => {
@@ -107,6 +113,8 @@ describe("listEmployeesQuerySchema", () => {
     { page: "0" },
     { page: "1.5" },
     { pageSize: "101" },
+    { page: "abc" },
+    { pageSize: "0" },
     { sortBy: "passwordHash" },
     { sortOrder: "up" },
     { status: "FIRED" },
