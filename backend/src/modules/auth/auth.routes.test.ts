@@ -28,7 +28,10 @@ describe("auth routes", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.user.email).toBe(TEST_EMAIL);
-    expect(response.headers["set-cookie"]?.[0]).toMatch(/^session=/);
+    const cookie = response.headers["set-cookie"]?.[0];
+    expect(cookie).toMatch(/^session=/);
+    expect(cookie).toMatch(/;\s*HttpOnly/i);
+    expect(cookie).toMatch(/;\s*SameSite=Lax/i);
   });
 
   it("rejects invalid credentials with 401", async () => {
@@ -86,6 +89,10 @@ describe("auth routes", () => {
     const response = await request(app).post("/api/auth/logout");
 
     expect(response.status).toBe(200);
-    expect(response.headers["set-cookie"]?.[0]).toMatch(/^session=;/);
+    const cookie = response.headers["set-cookie"]?.[0];
+    expect(cookie).toMatch(/^session=;/);
+    expect(cookie).toMatch(/;\s*HttpOnly/i);
+    expect(cookie).toMatch(/;\s*SameSite=Lax/i);
+    expect(cookie).toMatch(/;\s*Expires=Thu, 01 Jan 1970/i);
   });
 });
