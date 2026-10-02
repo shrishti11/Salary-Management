@@ -1,4 +1,5 @@
 import { Alert, Box, Button, LinearProgress, TablePagination, Typography } from "@mui/material";
+import { useEffect, useRef } from "react";
 import { Link, redirect, useLoaderData, useNavigation, useSearchParams } from "react-router";
 
 import EmployeeFilters from "~/components/employees/EmployeeFilters";
@@ -31,7 +32,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { data, pagination } = employees.data;
 
   // A hand-edited or stale page number past the end: jump to the last page.
-  if (data.length === 0 && pagination.total > 0 && params.page > 1) {
+  if (data.length === 0 && pagination.total > 0 && params.page > 1 && params.page !== pagination.totalPages) {
     const query = toSearchParams({ ...params, page: pagination.totalPages }).toString();
     throw redirect(`/employees${query ? `?${query}` : ""}`);
   }
@@ -62,14 +63,32 @@ export default function Employees() {
   const [, setSearchParams] = useSearchParams();
   const navigation = useNavigation();
 
+  // Always apply changes to the latest requested state, not the render-time snapshot:
+  // debounced and rapid successive changes can fire before the previous navigation commits.
+  const latest = useRef(params);
+  useEffect(() => {
+    latest.current = params;
+  }, [params]);
+
+  const commit = (next: ListParams) => {
+    latest.current = next;
+    setSearchParams(toSearchParams(next));
+  };
+
   const update = (patch: Partial<ListParams>, resetPage = true) => {
-    setSearchParams(toSearchParams({ ...params, ...patch, ...(resetPage ? { page: 1 } : {}) }));
+    commit({ ...latest.current, ...patch, ...(resetPage ? { page: 1 } : {}) });
+  };
+
+  const clearFilters = () => {
+    const { sortBy, sortOrder, pageSize } = latest.current;
+    commit({ ...DEFAULT_LIST_PARAMS, sortBy, sortOrder, pageSize });
   };
 
   const handleSort = (field: SortField) => {
+    const current = latest.current;
     update(
-      field === params.sortBy
-        ? { sortOrder: params.sortOrder === "asc" ? "desc" : "asc" }
+      field === current.sortBy
+        ? { sortOrder: current.sortOrder === "asc" ? "desc" : "asc" }
         : { sortBy: field, sortOrder: "asc" },
     );
   };
@@ -92,16 +111,7 @@ export default function Employees() {
         values={{ q: params.q, departmentId: params.departmentId, country: params.country, status: params.status }}
         departments={departments}
         onChange={(patch) => update(patch)}
-        onClear={() =>
-          setSearchParams(
-            toSearchParams({
-              ...DEFAULT_LIST_PARAMS,
-              sortBy: params.sortBy,
-              sortOrder: params.sortOrder,
-              pageSize: params.pageSize,
-            }),
-          )
-        }
+        onClear={clearFilters}
       />
 
       {loading && <LinearProgress aria-label="Loading employees" sx={{ mb: 1 }} />}
@@ -112,7 +122,7 @@ export default function Employees() {
             {hasFilters ? "No employees match your filters" : "No employees yet"}
           </Typography>
           {hasFilters ? (
-            <Button onClick={() => setSearchParams(new URLSearchParams())}>Clear filters</Button>
+            <Typography color="text.secondary">Try a different search or use Clear filters above.</Typography>
           ) : (
             <Button variant="contained" component={Link} to="/employees/new">
               Add employee

@@ -47,4 +47,36 @@ describe("EmployeeFilters", () => {
     await userEvent.click(screen.getByRole("button", { name: "Clear filters" }));
     expect(onClear).toHaveBeenCalled();
   });
+
+  it("does not overwrite newer typing when the URL echoes an older search", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <EmployeeFilters values={empty} departments={departments} onChange={onChange} onClear={() => {}} />,
+    );
+    const box = screen.getByLabelText("Search");
+
+    await userEvent.type(box, "as");
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({ q: "as" }), { timeout: 1500 });
+    await userEvent.type(box, "h");
+
+    rerender(<EmployeeFilters values={{ ...empty, q: "as" }} departments={departments} onChange={onChange} onClear={() => {}} />);
+    expect(box).toHaveValue("ash");
+  });
+
+  it("updates the box when the URL value changes externally", async () => {
+    const onChange = vi.fn();
+    const { rerender } = render(
+      <EmployeeFilters values={empty} departments={departments} onChange={onChange} onClear={() => {}} />,
+    );
+    const box = screen.getByLabelText("Search");
+    await userEvent.type(box, "as");
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({ q: "as" }), { timeout: 1500 });
+    rerender(<EmployeeFilters values={{ ...empty, q: "as" }} departments={departments} onChange={onChange} onClear={() => {}} />);
+
+    rerender(<EmployeeFilters values={empty} departments={departments} onChange={onChange} onClear={() => {}} />);
+    expect(box).toHaveValue("");
+
+    rerender(<EmployeeFilters values={{ ...empty, q: "zed" }} departments={departments} onChange={onChange} onClear={() => {}} />);
+    expect(box).toHaveValue("zed");
+  });
 });

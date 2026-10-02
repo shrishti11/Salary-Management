@@ -1,5 +1,5 @@
 import { Box, Button, TextField } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { COUNTRIES } from "~/lib/countries";
 import type { Department, ListParams } from "~/lib/employees-api";
@@ -18,14 +18,25 @@ const NATIVE_SELECT = { select: { native: true }, inputLabel: { shrink: true } }
 export default function EmployeeFilters({ values, departments, onChange, onClear }: EmployeeFiltersProps) {
   const [search, setSearch] = useState(values.q);
 
-  // keep the box in sync when the URL changes (e.g. Clear filters)
-  useEffect(() => setSearch(values.q), [values.q]);
+  const lastEmitted = useRef(values.q);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+
+  // Sync the box from the URL only for external changes (e.g. Clear filters),
+  // not for the echo of a value this box emitted (which may be older than the typing).
+  useEffect(() => {
+    if (values.q === lastEmitted.current) return;
+    lastEmitted.current = values.q;
+    setSearch(values.q);
+  }, [values.q]);
 
   useEffect(() => {
-    if (search === values.q) return;
-    const timer = setTimeout(() => onChange({ q: search }), 300);
+    if (search === lastEmitted.current) return;
+    const timer = setTimeout(() => {
+      lastEmitted.current = search;
+      onChangeRef.current({ q: search });
+    }, 300);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const hasFilters = Boolean(values.q || values.departmentId || values.country || values.status);

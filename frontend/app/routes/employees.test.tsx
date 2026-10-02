@@ -31,7 +31,8 @@ function stubBackend(handler: (url: URL) => Response) {
   return fetchMock;
 }
 
-const departments = { departments: [{ id: "d1", name: "Engineering" }] };
+const DEPT_ID = "11111111-1111-4111-8111-111111111111";
+const departments = { departments: [{ id: DEPT_ID, name: "Engineering" }] };
 const emptyList = { data: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } };
 
 /** Routes /api/departments to the fixture and /api/employees to `employees`. */
@@ -113,16 +114,17 @@ describe("employees route", () => {
     links.forEach((link) => expect(link).toHaveAttribute("href", "/employees/new"));
   });
 
-  it("shows a filtered empty state and Clear filters resets the URL", async () => {
+  it("shows a filtered empty state and Clear filters resets filters but keeps sort", async () => {
     backendWith(() => json(emptyList));
-    const router = renderAt("/employees?q=zzz");
+    const router = renderAt("/employees?q=zzz&status=ACTIVE&sortBy=name");
 
     expect(await screen.findByText("No employees match your filters")).toBeInTheDocument();
-    // one in the filter bar, one in the empty state
-    const clear = screen.getAllByRole("button", { name: "Clear filters" });
-    await userEvent.click(clear[clear.length - 1]);
+    await userEvent.click(screen.getByRole("button", { name: "Clear filters" }));
 
-    await waitFor(() => expect(router.state.location.search).toBe(""));
+    await waitFor(() => expect(router.state.location.search).not.toContain("q="));
+    const search = new URLSearchParams(router.state.location.search);
+    expect(search.has("status")).toBe(false);
+    expect(search.get("sortBy")).toBe("name");
   });
 
   it("redirects an out-of-range page to the last page", async () => {
@@ -161,5 +163,33 @@ describe("employees route", () => {
     renderAt("/employees");
 
     expect(await screen.findByText("login page")).toBeInTheDocument();
+  });
+
+  it("does not redirect when the last page itself comes back empty", async () => {
+    const seen: URL[] = [];
+    backendWith(
+      () => json({ data: [], pagination: { page: 3, pageSize: 20, total: 45, totalPages: 3 } }),
+      seen,
+    );
+    const router = renderAt("/employees?page=3");
+
+    expect(await screen.findByText("No employees yet")).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?page=3");
+    expect(seen).toHaveLength(1);
+  });
+
+  it("keeps both the search text and a department chosen right after typing", async () => {
+    backendWith(twoEmployees);
+    const router = renderAt("/employees");
+    await screen.findByText("EMP-0001");
+
+    await userEvent.type(screen.getByLabelText("Search"), "asha");
+    await userEvent.selectOptions(screen.getByLabelText("Department"), DEPT_ID);
+
+    await waitFor(() => {
+      const search = new URLSearchParams(router.state.location.search);
+      expect(search.get("q")).toBe("asha");
+      expect(search.get("departmentId")).toBe(DEPT_ID);
+    });
   });
 });
