@@ -4,6 +4,8 @@ import { AppError } from "../../middleware/error.middleware.ts";
 import type {
   CreateEmployeeInput,
   EmployeeStatusValue,
+  ListEmployeesQuery,
+  SortField,
   UpdateEmployeeInput,
 } from "./employee.schema.ts";
 
@@ -123,4 +125,62 @@ export async function setEmployeeStatus(id: string, status: EmployeeStatusValue)
     if (prismaCode(error) === "P2025") throw employeeNotFound();
     throw error;
   }
+}
+
+// Prisma does not escape LIKE wildcards, so escape them to search literally.
+const contains = (token: string) => ({
+  contains: token.replace(/[\\%_]/g, "\\$&"),
+  mode: "insensitive" as const,
+});
+
+function buildOrderBy(
+  sortBy: SortField,
+  sortOrder: "asc" | "desc",
+): Prisma.EmployeeOrderByWithRelationInput[] {
+  switch (sortBy) {
+    case "name":
+      return [{ lastName: sortOrder }, { firstName: sortOrder }, { id: "asc" }];
+    case "department":
+      return [{ department: { name: sortOrder } }, { id: "asc" }];
+    default:
+      return [{ [sortBy]: sortOrder } as Prisma.EmployeeOrderByWithRelationInput, { id: "asc" }];
+  }
+}
+
+export async function listEmployees(query: ListEmployeesQuery) {
+  const { page, pageSize, q, departmentId, country, status, sortBy, sortOrder } = query;
+  const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+
+  const where: Prisma.EmployeeWhereInput = {
+    ...(departmentId && { departmentId }),
+    ...(country && { country }),
+    ...(status && { status }),
+    ...(tokens.length > 0 && {
+      // every token must match at least one searchable field ("john smith" == "smith john")
+      AND: tokens.map((token) => ({
+        OR: [
+          { employeeCode: contains(token) },
+          { firstName: contains(token) },
+          { lastName: contains(token) },
+          { email: contains(token) },
+        ],
+      })),
+    }),
+  };
+
+  const [total, rows] = await prisma.$transaction([
+    prisma.employee.count({ where }),
+    prisma.employee.findMany({
+      where,
+      orderBy: buildOrderBy(sortBy, sortOrder),
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: employeeInclude,
+    }),
+  ]);
+
+  return {
+    data: rows.map(serializeEmployee),
+    pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
+  };
 }
