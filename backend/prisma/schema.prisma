@@ -27,3 +27,38 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Department {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  employees Employee[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Employee {
+  id           String         @id @default(uuid())
+  employeeCode String         @unique
+  firstName    String
+  lastName     String
+  email        String         @unique
+  phone        String?
+  departmentId String
+  department   Department     @relation(fields: [departmentId], references: [id], onDelete: Restrict)
+  designation  String
+  country      String         @db.Char(2)
+  joiningDate  DateTime       @db.Date
+  status       EmployeeStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([status])
+  @@index([departmentId])
+  @@index([country])
+  @@index([lastName, firstName])
+}
