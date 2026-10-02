@@ -455,6 +455,8 @@ These are logical dependencies. Modules remain part of the same backend applicat
 
 ## 10. Implementation Priority
 
+> Current progress per module: see [04-implementation-status.md](04-implementation-status.md).
+
 ### Phase 1: Core Employee and Salary Management
 
 - Employee directory.
