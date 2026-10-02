@@ -1,87 +1,36 @@
-# Welcome to React Router!
+# Salary Management Frontend
 
-A modern, production-ready template for building full-stack React applications using React Router.
+React Router v8 (framework mode, SSR) + Material UI, run with Bun.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
-
-## Features
-
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
-
-## Getting Started
-
-### Installation
-
-Install the dependencies:
+## Scripts
 
 ```bash
-npm install
+bun install
+bun run dev        # dev server on http://localhost:5173
+bun run build      # production build to build/
+bun run start      # serve the build (PORT, default 3000)
+bun run typecheck  # react-router typegen && tsc
+bun run test       # Vitest + React Testing Library
 ```
 
-### Development
+## Environment
 
-Start the development server with HMR:
+| Variable | Default | Notes |
+|---|---|---|
+| `VITE_API_URL` | `http://localhost:3001` | Backend base URL used by the SSR server. Inlined at **build time** (`import.meta.env`); Docker passes it as a build arg (`http://backend:3001`). |
 
-```bash
-npm run dev
-```
+## Routes (`app/routes.ts`)
 
-Your application will be available at `http://localhost:5173`.
+| Path | File | Notes |
+|---|---|---|
+| `/` | `routes/home.tsx` | Redirects to `/dashboard` |
+| `/login` | `routes/login.tsx` | Form (React Hook Form + Zod); action calls backend login and relays `Set-Cookie` |
+| `/logout` | `routes/logout.tsx` | Action calls backend logout, relays cleared cookie, redirects to `/login` |
+| layout `routes/authenticated.tsx` | | Loader calls `GET /api/auth/me`; redirects to `/login` if not signed in. Wraps `AppLayout`. Put every protected route under it. |
+| `/dashboard` | `routes/dashboard.tsx` | Placeholder showing the signed-in user |
 
-## Building for Production
+## How auth and SSR work
 
-Create a production build:
+The browser only talks to the frontend origin. Loaders and actions run on the server, call the backend through `app/lib/api-client.ts` (forwarding the incoming `Cookie` header where needed) and relay the backend's `Set-Cookie` header back to the browser. The session is an httpOnly `session` JWT cookie issued by the backend, so no CORS or cross-origin cookie handling is needed in the default topology.
 
-```bash
-npm run build
-```
-
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
-
-```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
-```
-
-## Styling
-
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
-
----
-
-Built with ❤️ using React Router.
+Layout: `app/components/layout/` (`AppLayout`, `PageHeader`), `app/lib/` (`api-client`, `require-user`).

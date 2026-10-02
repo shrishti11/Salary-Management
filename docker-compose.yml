@@ -23,6 +23,11 @@ services:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/salary_management?schema=public
+      # Required (min 32 chars): no default, so a deployment can never run with a public secret.
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (32+ chars), e.g. JWT_SECRET=$(openssl rand -hex 32) docker compose up --build}
+      JWT_EXPIRES_IN: 1d
+      COOKIE_NAME: session
+      FRONTEND_URL: http://localhost:3000
     ports:
       - "3001:3001"
     depends_on:
@@ -33,6 +38,9 @@ services:
   frontend:
     build:
       context: ./frontend
+      args:
+        # SSR server calls the API server-side over the compose network.
+        VITE_API_URL: http://backend:3001
     environment:
       NODE_ENV: production
       PORT: 3000

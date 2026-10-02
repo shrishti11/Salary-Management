@@ -21,10 +21,10 @@ This approach provides clear separation of responsibilities while keeping develo
 | Technology | Purpose |
 |---|---|
 | React | Component-based UI development |
-| React Router v7 | Routing and route-level data loading and mutations |
+| React Router v8 (framework mode, SSR) | Routing, server-side route loaders/actions that call the backend API, session cookie relay |
 | TypeScript | Static typing and maintainability |
-| Vite | Development server and frontend build tooling |
-| Material UI (MUI) | UI components, forms, tables, dialogs and layouts |
+| Vite | Development server and frontend build tooling (via React Router) |
+| Material UI (MUI) | UI components, forms, tables, dialogs and layouts (MUI only; no Tailwind) |
 | React Hook Form | Form state and submission handling |
 | Zod | Form data validation |
 | Recharts | Dashboard charts and analytics visualizations |
@@ -35,13 +35,14 @@ This approach provides clear separation of responsibilities while keeping develo
 
 | Technology | Purpose |
 |---|---|
-| Node.js | Backend runtime |
+| Bun / Node.js | Package manager and script runner (Bun); the API runs under `tsx` |
 | Express | HTTP server and REST API |
 | TypeScript | Static typing |
-| Prisma | ORM, database access and migrations |
+| Prisma 7 | ORM, database access and migrations (driver adapter `@prisma/adapter-pg` + `pg`; config in `prisma7.config.ts`) |
 | PostgreSQL | Relational database |
 | Zod | Request validation |
-| dotenv | Environment configuration |
+| Zod env schema | Environment configuration (`src/config/env.ts`; `.env` loaded via `process.loadEnvFile`) |
+| jsonwebtoken, bcryptjs, cookie, cookie-parser | JWT session in an httpOnly cookie, password hashing |
 | Helmet | HTTP security headers |
 | CORS | Cross-origin request configuration |
 | tsx | TypeScript execution during development |
@@ -53,18 +54,16 @@ This approach provides clear separation of responsibilities while keeping develo
 | Technology | Purpose |
 |---|---|
 | Git | Version control |
-| Yarn | Dependency management |
-| Docker Compose | Optional local PostgreSQL setup |
+| Bun | Dependency management and scripts |
+| Docker Compose | Local PostgreSQL, or the full stack (postgres + backend + frontend) |
 | Managed PostgreSQL | Production database hosting |
-| Render / Railway | Backend hosting |
-| Vercel / Static Hosting | Frontend hosting |
 
 ## 3. High-Level Architecture
 
 ```mermaid
 flowchart TD
-    U["HR Manager"] --> FE["React + React Router v7<br/>Vite + MUI"]
-    FE -->|"REST API / HTTPS"| API["Express + TypeScript"]
+    U["HR Manager"] --> FE["React Router v8 (SSR)<br/>Vite + MUI"]
+    FE -->|"REST API (server-side from SSR loaders/actions)"| API["Express + TypeScript"]
     
     subgraph Backend["Backend - Modular Monolith"]
         API --> AUTH["Authentication & Authorization"]
@@ -127,6 +126,8 @@ It will store:
 - Any additional configuration data required by the system.
 
 Prisma will provide typed database access, schema management and migrations.
+
+> **Implementation note (foundation phase).** The frontend runs React Router in framework mode with server-side rendering. Route loaders and actions call the backend API on the server (`app/lib/api-client.ts`) and relay the backend's `Set-Cookie` header to the browser, so the browser only talks to the frontend origin. See `docs/04-implementation-status.md` and `docs/implementation/2026-10-02-foundation-summary.md`.
 
 ## 4. Backend Architecture
 
