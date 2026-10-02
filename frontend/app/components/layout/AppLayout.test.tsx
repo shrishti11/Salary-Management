@@ -36,4 +36,22 @@ describe("AppLayout", () => {
     expect(screen.getByText(/Alice/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Logout" })).toHaveAttribute("type", "submit");
   });
+
+  it("highlights the nav section for the current path", () => {
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/",
+          Component: AppLayout,
+          children: [{ path: "employees/:id", Component: () => <div>profile</div> }],
+        },
+      ],
+      { initialEntries: ["/employees/e1"] },
+    );
+
+    render(<RouterProvider router={router} />);
+
+    expect(screen.getByRole("link", { name: "Employees" })).toHaveClass("Mui-selected");
+    expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveClass("Mui-selected");
+  });
 });

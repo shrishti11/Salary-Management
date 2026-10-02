@@ -1,5 +1,5 @@
 import { AppBar, Box, Button, Drawer, List, ListItemButton, ListItemText, Toolbar, Typography } from "@mui/material";
-import { Form, Link, Outlet } from "react-router";
+import { Form, Link, Outlet, useLocation } from "react-router";
 
 const DRAWER_WIDTH = 220;
 
@@ -15,6 +15,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ user }: AppLayoutProps = {}) {
+  const { pathname } = useLocation();
   return (
     <Box sx={{ display: "flex" }}>
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
@@ -48,7 +49,12 @@ export default function AppLayout({ user }: AppLayoutProps = {}) {
         <Toolbar />
         <List>
           {NAV_ITEMS.map((item) => (
-            <ListItemButton key={item.to} component={Link} to={item.to}>
+            <ListItemButton
+              key={item.to}
+              component={Link}
+              to={item.to}
+              selected={pathname === item.to || pathname.startsWith(`${item.to}/`)}
+            >
               <ListItemText primary={item.label} />
             </ListItemButton>
           ))}

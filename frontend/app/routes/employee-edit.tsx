@@ -6,6 +6,8 @@ import type { EmployeeFormValues } from "~/lib/employee-form";
 import { getEmployee, listDepartments, toFormError, updateEmployee } from "~/lib/employees-api";
 import type { Route } from "./+types/employee-edit";
 
+export { ErrorBoundary } from "./employee-profile";
+
 export async function loader({ request, params }: Route.LoaderArgs) {
   const [employee, departments] = await Promise.all([
     getEmployee(request, params.id),
