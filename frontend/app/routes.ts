@@ -10,6 +10,7 @@ export default [
     route("employees/:id", "routes/employee-profile.tsx"),
     route("employees/:id/edit", "routes/employee-edit.tsx"),
     route("salaries", "routes/salaries.tsx"),
+    route("analytics", "routes/analytics.tsx"),
   ]),
   index("routes/home.tsx"),
 ] satisfies RouteConfig;

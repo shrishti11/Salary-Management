@@ -66,4 +66,18 @@ describe("AppLayout", () => {
     expect(screen.getByRole("link", { name: "Salaries" })).toHaveClass("Mui-selected");
     expect(screen.getByRole("link", { name: "Employees" })).not.toHaveClass("Mui-selected");
   });
+
+  it("links to Analytics after Salaries and highlights it on /analytics", () => {
+    const router = createMemoryRouter(
+      [{ path: "/", Component: AppLayout, children: [{ path: "analytics", Component: () => <div>analytics</div> }] }],
+      { initialEntries: ["/analytics?basis=net"] },
+    );
+
+    render(<RouterProvider router={router} />);
+
+    const links = screen.getAllByRole("link").map((l) => l.textContent);
+    expect(links.indexOf("Analytics")).toBe(links.indexOf("Salaries") + 1);
+    expect(screen.getByRole("link", { name: "Analytics" })).toHaveClass("Mui-selected");
+    expect(screen.getByRole("link", { name: "Salaries" })).not.toHaveClass("Mui-selected");
+  });
 });
