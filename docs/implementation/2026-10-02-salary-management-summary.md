@@ -12,6 +12,7 @@ Build the Salary Management module on top of Employee Management: record an empl
 - Backend: `modules/salaries` (`salary.routes`, `salary.controller`, `salary.service`, `salary.schema`, `salary.calc`); static ISO 4217 list in `lib/currencies.ts`; router mounted in `app.ts` at `/api/employees/:id/salaries`.
 - Frontend: `lib/salaries-api.ts`, `lib/salary-form.ts` (zod schema, totals, `nextDay`), `lib/currencies.ts`; `components/salary/CompensationSection` (current card, scheduled banner, history table, empty/error/inactive states) and `SalaryFormDialog` (set and revise, live totals, confirm step for revisions); `routes/employee-profile.tsx` loader fetches salaries and the action handles the JSON salary save. The old compensation placeholder card on the profile is gone.
 - Docs and READMEs updated.
+- Note: this module had no standalone salaries page (the sidebar "Salaries" link had no route). The company-wide read-only list was added later as the salary directory: see [2026-10-03-salary-directory-summary.md](2026-10-03-salary-directory-summary.md).
 
 ## Data model
 

@@ -65,3 +65,10 @@ Errors use `{ "error": { "message", "code?" } }`; `ZodError` maps to 400 `VALIDA
 - Config lives in `prisma7.config.ts` (datasource URL, migrations path); the schema has no `url`.
 - The client uses the `@prisma/adapter-pg` driver adapter (`src/lib/prisma.ts`) and is generated to `generated/prisma` (import `../generated/prisma/client.ts`).
 - Prisma 7 does not auto-load `.env`; the config and seed load it explicitly.
+
+### Salary directory
+
+`GET /api/salaries` (ADMIN and HR_MANAGER) lists every employee with their current salary, for a company-wide read-only view.
+
+- Query: `page` (default 1), `pageSize` (1-100, default 20), `q` (name, employee ID or email), `departmentId`, `country`, `status` (`ACTIVE` default, `INACTIVE`, `ALL`), `salary` (`with` / `without` a current salary), `sortBy` (`name` default, `employeeCode`, `department`, `country`, `effectiveDate`), `sortOrder` (`asc` default, `desc`). Unknown keys and invalid values return 400 `VALIDATION_ERROR`.
+- Response: `{ data: [{ employee: { id, employeeCode, firstName, lastName, email, department, country, status }, current: { id, currency, effectiveDate, gross, net, deductions, reason } | null, hasScheduled }], pagination: { page, pageSize, total, totalPages } }`. Amounts are decimal strings in the record's own currency; there is no amount sorting because currencies differ.

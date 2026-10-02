@@ -1,6 +1,6 @@
 # Implementation Status
 
-Last updated: 2026-10-02 (Salary Management module done).
+Last updated: 2026-10-03 (Salary directory done).
 
 | Module | Status | Notes |
 |---|---|---|
@@ -9,6 +9,7 @@ Last updated: 2026-10-02 (Salary Management module done).
 | Authentication: admin user-management UI, per-request `isActive` check in `requireAuth` | ⬜ Not started | Planned with Phase 4 |
 | Employee module (Department/Employee schema, CRUD, directory, profile) | ✅ Done | CRUD, searchable/filterable directory, profile, activate/deactivate. The profile audit section is pending the Audit module. See [implementation summary](implementation/2026-10-02-employee-management-summary.md) |
 | Salary module (records, revisions, history) | ✅ Done | Append-only salary records with components, revisions, scheduled changes, history, compensation section on the profile. Audit hook still pending. See [implementation summary](implementation/2026-10-02-salary-management-summary.md) |
+| Salary directory (`/salaries`: read-only, current salary per employee across the company) | ✅ Done | `GET /api/salaries` plus the `/salaries` page: search, department/country/status/salary-presence filters, sorting, pagination. No amount sorting, totals or export. See [implementation summary](implementation/2026-10-03-salary-directory-summary.md) |
 | Dashboard and Analytics | ⬜ Not started | Phase 2 (placeholder dashboard page only) |
 | Import / Export (CSV) | ⬜ Not started | Phase 3 |
 | Audit | ⬜ Not started | Phase 4 (salary records carry `createdBy`/`reason`, with a marked hook in `createSalary`) |
