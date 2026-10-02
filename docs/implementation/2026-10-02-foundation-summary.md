@@ -28,7 +28,7 @@ Build the application foundation in small steps: (1) project structure, config a
 - Minimal schema (User + Role). ZodError -> 400 `{error:{message:"Validation failed",code:"VALIDATION_ERROR"}}` centrally; `errorHandler` has a `headersSent` guard.
 - **Prisma 7 quirks:** no `url` in the schema (config is `prisma7.config.ts`), driver adapter `@prisma/adapter-pg`, client generated to `generated/prisma` (gitignored, generated in the Docker build), `.env` is not auto-loaded so `env.ts`, `prisma7.config.ts` and `seed.ts` use a guarded `process.loadEnvFile`. The `prisma.seed` key in package.json is likely ignored (script `db:seed` is what is used).
 - `/api/auth/me` rejects deactivated users (clears cookie, 401) so the frontend guard locks them out.
-- **Docker:** backend CMD runs `bun run db:deploy` (prisma migrate deploy) then starts; seeding is manual (`docker compose exec backend bun run db:seed`). Compose has a dev-only `JWT_SECRET` default. Frontend `VITE_API_URL` is a build arg (`http://backend:3001` in compose) because it is inlined at build time.
+- **Docker:** backend CMD runs `bun run db:deploy` (prisma migrate deploy) then starts; seeding is manual (`docker compose exec backend bun run db:seed`). Compose requires `JWT_SECRET` (no default; see Final review fixes). Frontend `VITE_API_URL` is a build arg (`http://backend:3001` in compose) because it is inlined at build time.
 
 ## APIs
 
@@ -52,6 +52,13 @@ Frontend (9 files, 18 tests): `components/layout/AppLayout.test.tsx`, `lib/api-c
 
 Run against both `docker compose up --build` (fresh volume: migration applied on start, manual seed) and local processes (postgres in Docker, backend `bun run dev`, frontend `bun run dev`) with curl: backend `/health`, login good (200) / bad (401) / bad body (400), `/me` with and without cookie; frontend `GET /` -> 302 `/dashboard`, `/dashboard` anon -> 302 `/login`, `/login` 200, form POST to `/login.data` relays the `session` cookie, authenticated `/dashboard` renders "Signed in as Dev Admin (ADMIN)" (confirms the shared route id works), `/logout.data` clears the cookie and `/dashboard` redirects to `/login` again. No real browser was used (no screenshots, no JS-hydrated form submission). Typecheck/tests/build clean for both apps.
 
+## Final review fixes
+
+- Login form now has `method="post"`, so a pre-hydration/no-JS submit POSTs to the route `action` instead of putting the password in a GET query string (RTL test added).
+- `errorHandler` maps body-parser client errors (malformed JSON, oversized body; numeric 4xx `status`/`statusCode`) to 400 `{error:{message:"Invalid request body",code:"BAD_REQUEST"}}` without logging or echoing parser details (tests in `error.middleware.test.ts` and `auth.routes.test.ts`).
+- `docker-compose.yml` now **requires** `JWT_SECRET` (`${JWT_SECRET:?...}`), so no deployment can silently run with a public signing key. Set it in a git-ignored root `.env` (copy `.env.example`, which has an empty placeholder) or inline. Compose validates the whole file, so even `docker compose up -d postgres` needs it set.
+- Login/logout session cookie attributes (HttpOnly, SameSite=Lax, expired-on-logout) are pinned in tests.
+
 ## Known limitations and deferred items
 
 **Security / auth**
@@ -61,7 +68,7 @@ Run against both `docker compose up --build` (fresh volume: migration applied on
 - No admin user-management UI; the only user is the seed admin.
 
 **Infra / tests**
-- Backend tests and frontend tests depend on a local `backend/.env` / running Postgres (no CI env yet); add vitest `setupFiles`/test env before CI. Test users may orphan if a run is killed (use upsert/pre-clean).
+- Backend tests (only) depend on a local `backend/.env` / running Postgres (no CI env yet); frontend tests stub `fetch` and need neither; add vitest `setupFiles`/test env before CI. Test users may orphan if a run is killed (use upsert/pre-clean).
 - `.env` loading duplicated in `prisma7.config.ts` and `seed.ts` (plus `env.ts`); extract if more appear.
 - `VITE_API_URL` is baked at build time; changing the API URL needs a frontend rebuild.
 - Compose seed is manual; dev secret default in `docker-compose.yml` must be overridden for real use.
