@@ -1,7 +1,7 @@
-import type { Route } from "./+types/home";
+import { redirect } from "react-router";
 
-export function meta(_args: Route.MetaArgs) {
-  return [{ title: "Salary Management" }];
+export function loader() {
+  return redirect("/dashboard");
 }
 
 export default function Home() {
