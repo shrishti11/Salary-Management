@@ -20,7 +20,7 @@ Out of scope: payroll, tax, currency conversion, approval workflows, pay-period/
 | 5 | `currency` is an ISO 4217 code from a static list (about 20) on the record. It may change between revisions. No conversion. | Matches docs ("multiple currencies", no conversion in v1). |
 | 6 | `effectiveDate` is `YYYY-MM-DD`, a real calendar date, may be back-dated or future-dated, and not before the employee's `joiningDate`. Unique on (employeeId, effectiveDate). | Back-dating is needed for history; scheduled raises are common. |
 | 7 | "Current" = the record with the latest `effectiveDate` on or before today (UTC, server). A later-dated record is "scheduled". Derived at read time; no job. | Simple, no moving parts. |
-| 8 | A new record's `effectiveDate` must be strictly after the newest existing record's date. Otherwise 409 `EFFECTIVE_DATE_NOT_AFTER_LATEST`. | Avoids recompute rules for mid-history inserts. |
+| 8 | A new record's `effectiveDate` must be strictly after the newest existing record's date. Otherwise 409: `DUPLICATE_EFFECTIVE_DATE` if equal to it, `EFFECTIVE_DATE_NOT_AFTER_LATEST` if earlier. | Avoids recompute rules for mid-history inserts. |
 | 9 | One endpoint creates the initial record or a revision; the service decides. A revision requires a reason (3-500 chars). The initial record's reason is optional and defaults to "Initial salary". | Matches `POST /api/employees/:id/salaries` in the architecture doc. |
 | 10 | Inactive employees: history stays viewable; new records return 409 `EMPLOYEE_INACTIVE`. | Employee doc excludes inactive staff from metrics. |
 | 11 | Salary router uses `requireAuth` + its own `requireRole("ADMIN","HR_MANAGER")`. Frontend shows the section only if the API call succeeds. | Easy to tighten independently of Employees. |
@@ -86,7 +86,7 @@ All routes under `requireAuth` + `requireRole`. Errors use `{ error: { message, 
 
 A salary object: `{ id, employeeId, currency, effectiveDate, reason, createdAt, createdBy: {id, name}, components: [{id,type,name,amount}], totals: {gross, deductions, net}, changeFromPrevious: { gross, net, grossPercent } | null, status: "CURRENT"|"SCHEDULED"|"PREVIOUS" }`.
 
-`changeFromPrevious` is `null` for the first record, and also `null` when the currency differs from the previous record (a cross-currency delta is meaningless without conversion). `history` includes every record, newest first, with the current one flagged. `current` and `scheduled` are `null` when absent; `scheduled` is the single newest future-dated record (further future records are still in `history` as SCHEDULED).
+`changeFromPrevious` is `null` for the first record, and also `null` when the currency differs from the previous record (a cross-currency delta is meaningless without conversion). `history` includes every record, newest first, with the current one flagged. `current` and `scheduled` are `null` when absent; `scheduled` is the nearest upcoming future-dated record, i.e. the next change (further future records are still in `history` as SCHEDULED).
 
 Errors: 400 validation / bad uuid; 401; 403; 404 `EMPLOYEE_NOT_FOUND` / `SALARY_NOT_FOUND` (record belongs to another employee); 409 `EMPLOYEE_INACTIVE`, `EFFECTIVE_DATE_NOT_AFTER_LATEST`, `DUPLICATE_EFFECTIVE_DATE`; 422 is not used (400 for business-rule value errors like negative net, effective date before joining: codes `NEGATIVE_NET`, `EFFECTIVE_DATE_BEFORE_JOINING`).
 

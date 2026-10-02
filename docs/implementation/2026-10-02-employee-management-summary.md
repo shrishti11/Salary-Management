@@ -100,7 +100,7 @@ Added during implementation:
 - 409 responses use `DUPLICATE_EMPLOYEE_CODE` or `DUPLICATE_EMAIL`; the generic fallback code `DUPLICATE_EMPLOYEE` is returned only if the clashing row vanishes between the unique violation and the lookup.
 - Directory default status filter is "All" (inactive employees are included).
 - ADMIN and HR_MANAGER permissions are identical for now.
-- Profile has no compensation or audit sections yet.
+- Profile has no audit section yet. (Update: the compensation placeholder was replaced by the Salary module, see `2026-10-02-salary-management-summary.md`.)
 - Dev note: the frontend dev server runs on port 5173 by default (Docker uses 3000); the manual pass used `--port 3000`.
 
 ## Known follow-ups (deferred review minors)
