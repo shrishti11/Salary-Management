@@ -65,6 +65,21 @@ Salaries use the same roles and live under `/api/employees/:id/salaries`. Record
 - Query: `page` (default 1), `pageSize` (1-100, default 20), `q` (name, employee ID or email), `departmentId`, `country`, `status` (`ACTIVE` default, `INACTIVE`, `ALL`), `salary` (`with` / `without` a current salary), `sortBy` (`name` default, `employeeCode`, `department`, `country`, `effectiveDate`), `sortOrder` (`asc` default, `desc`). Unknown keys and invalid values return 400 `VALIDATION_ERROR`.
 - Response: `{ data: [{ employee: { id, employeeCode, firstName, lastName, email, department, country, status }, current: { id, currency, effectiveDate, gross, net, deductions, reason } | null, hasScheduled }], pagination: { page, pageSize, total, totalPages } }`. Amounts are decimal strings in the record's own currency; there is no amount sorting because currencies differ.
 
+### Dashboard and analytics
+
+All under ADMIN and HR_MANAGER (401 / 403 otherwise). Read-only Postgres aggregations; every monetary aggregate is per currency and currencies are never combined. Money values are decimal strings. A salary counts as current if it has the latest `effectiveDate <= asOf` (UTC); scheduled records and employees without a current salary are excluded from money metrics. Unknown query params and invalid values return 400 `VALIDATION_ERROR`.
+
+| Endpoint | Query | Response |
+|---|---|---|
+| `GET /api/dashboard` | none | `{ asOf, metrics: { totalEmployees, activeEmployees, departmentCount, countryCount, withoutSalary, currencies }, departments, countries, recentEmployees (5), recentRevisions (5) }` (active employees, gross, as of today) |
+| `GET /api/analytics/summary` | filters, `asOf` | `{ asOf, basis, headcount: { total, active, inactive, withSalary, withoutSalary }, currencies: [{ currency, count, total, average, median, min, max, p25, p75 }] }` |
+| `GET /api/analytics/distribution` | filters, `asOf` | per currency, up to 10 equal-width buckets `{ from, to, count }` |
+| `GET /api/analytics/groups` | filters, `asOf`, `groupBy` (`department` default, `country`, `designation`) | `{ groups: [{ key, label, headcount, withoutSalary, currencies }] }`; a currency with fewer than 3 salaried employees is `{ currency, count, suppressed: true }` |
+| `GET /api/analytics/trends` | filters, `from`, `to` | per currency, zero-filled months `{ month, revisionCount, newSalaryCount, avgChangePercent, avgGross, avgNet }`; default last 12 months, `to` not in the future, max 60 months |
+| `GET /api/analytics/filters` | none | `{ departments, countries, designations, currencies }` in use |
+
+Filters: `departmentId`, `country`, `designation`, `status` (`ACTIVE` default, `INACTIVE`, `ALL`), `currency`, `basis` (`gross` default, `net`). Trends errors: 400 `INVALID_DATE_RANGE`. Summary `headcount.total/active/inactive` ignore `status`; `withSalary`/`withoutSalary` follow it; `currency` only trims the currency rows. Details: [`docs/implementation/2026-10-03-dashboard-analytics-summary.md`](../docs/implementation/2026-10-03-dashboard-analytics-summary.md).
+
 Errors use `{ "error": { "message", "code?" } }`; `ZodError` maps to 400 `VALIDATION_ERROR`.
 
 ## Prisma 7 notes

@@ -196,8 +196,8 @@ Provide a summary of the organization's workforce and compensation information.
 - Active employee count.
 - Total salary expenditure.
 - Average salary.
-- Median salary.
-- Department count and country count where applicable.
+- Median salary (implemented, per currency).
+- Department count and country count where applicable (department count = all departments; country count = countries with active employees).
 
 #### UC-DASH-02: View Department Summary
 
@@ -221,7 +221,7 @@ Provide a summary of the organization's workforce and compensation information.
 - Employee count by country.
 - Salary expenditure by country in the original currency.
 - Average salary by country.
-- Optional conversion into a common reporting currency when exchange-rate data is configured.
+- Optional conversion into a common reporting currency when exchange-rate data is configured. (Not implemented: every figure stays in its original currency.)
 
 #### UC-DASH-04: View Recent Changes
 
@@ -231,8 +231,10 @@ Provide a summary of the organization's workforce and compensation information.
 
 **Sub-features:**
 - Recent salary revisions.
-- Recently updated employee records.
+- Recently updated employee records. (Implemented as newly created employees by `createdAt`; employee edits are not tracked until the Audit module.)
 - Change date and acting user where authorized.
+
+_As built:_ recent changes derive from `createdAt` and cover salary revisions and new employees only.
 
 ## 5. Salary Analytics
 
@@ -251,7 +253,7 @@ Enable HR to explore how compensation is distributed throughout the organization
 **Sub-features:**
 - View salary ranges and employee counts.
 - View salary distribution by department.
-- View salary distribution by job title or level.
+- View salary distribution by job title or level. (Implemented by job title/designation as group comparison; there is no level field.)
 - Filter by country and department.
 
 #### UC-ANA-02: Compare Salaries
@@ -287,7 +289,7 @@ Enable HR to explore how compensation is distributed throughout the organization
 **Sub-features:**
 - Filter by department.
 - Filter by country.
-- Filter by job title or level.
+- Filter by job title or level. (Job title only; there is no level field.)
 - Select a date range.
 - Reset filters.
 

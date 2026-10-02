@@ -1,7 +1,7 @@
 # Dashboard and Salary Analytics Design
 
 Date: 2026-10-03
-Status: Draft, awaiting review
+Status: Implemented (see Implementation deltas at the end)
 
 ## 1. Purpose
 
@@ -103,3 +103,16 @@ Update `docs/04-implementation-status.md`, `docs/03-modules-and-use-cases.md` on
 - "Today" and "as of" are evaluated in UTC on the server.
 - Group suppression (fewer than 3) is a convention, not access control.
 - Median and percentiles are computed per request; no caching or materialised views.
+
+## 9. Implementation deltas
+
+What was built differs from the text above in these ways (see [the implementation summary](../../implementation/2026-10-03-dashboard-analytics-summary.md)):
+
+- One shared currency selector in the filter bar replaces the per-panel selectors in section 5. The effective currency is the `currency` param or the most populous currency from the summary; the loader fetches summary and filter options first, then the other panels with that currency.
+- `getGroups` takes a `suppress` flag (default true). The dashboard passes `suppress: false` so department and country money is shown for small groups; the comparison view keeps suppression.
+- `departmentCount` is the number of all departments (including empty ones); `countryCount` is the number of countries with active employees. `totalEmployees` counts active and inactive employees.
+- Summary headcount: `total`, `active` and `inactive` ignore the `status` filter; `withSalary` and `withoutSalary` follow it; the `currency` filter only trims currency rows.
+- Frontend fetchers omit params equal to the defaults (`status=ACTIVE`, `basis=gross`, `groupBy=department`); backend defaults are identical.
+- Distribution buckets are computed on integer cents, with `min(10, span + 1)` buckets when the span is under 10 cents.
+- Trends `avgChangePercent` also requires a positive previous value; `/api/analytics/trends` does not accept `asOf`.
+- Additional accepted limitations: charts plot display-only floats (exact values in tables), `getRecentRevisions` does follow-up queries per row, date inputs can emit partial-year dates while typing, and the seed has no revisions so Trends is empty on seed data.
