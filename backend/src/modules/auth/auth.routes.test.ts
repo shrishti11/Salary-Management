@@ -55,6 +55,19 @@ describe("auth routes", () => {
     expect(response.body.user.email).toBe(TEST_EMAIL);
   });
 
+  it("returns 401 from /me when the user has been deactivated", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/login").send({ email: TEST_EMAIL, password: TEST_PASSWORD });
+
+    await prisma.user.update({ where: { email: TEST_EMAIL }, data: { isActive: false } });
+    try {
+      const response = await agent.get("/api/auth/me");
+      expect(response.status).toBe(401);
+    } finally {
+      await prisma.user.update({ where: { email: TEST_EMAIL }, data: { isActive: true } });
+    }
+  });
+
   it("returns 401 from /me when not authenticated", async () => {
     const response = await request(app).get("/api/auth/me");
     expect(response.status).toBe(401);

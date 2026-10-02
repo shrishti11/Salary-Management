@@ -28,7 +28,7 @@ export function logoutHandler(_request: Request, response: Response) {
 export async function meHandler(request: Request, response: Response) {
   const user = await prisma.user.findUnique({ where: { id: request.user!.id } });
 
-  if (!user) {
+  if (!user || !user.isActive) {
     response.clearCookie(env.COOKIE_NAME, COOKIE_OPTIONS);
     throw new AppError(401, "Unauthorized");
   }
