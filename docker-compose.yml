@@ -23,8 +23,8 @@ services:
       NODE_ENV: production
       PORT: 3001
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/salary_management?schema=public
-      # DEV-ONLY secret (min 32 chars). Override JWT_SECRET for any real deployment.
-      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret-change-me-0123456789}
+      # Required (min 32 chars): no default, so a deployment can never run with a public secret.
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (32+ chars), e.g. JWT_SECRET=$(openssl rand -hex 32) docker compose up --build}
       JWT_EXPIRES_IN: 1d
       COOKIE_NAME: session
       FRONTEND_URL: http://localhost:3000

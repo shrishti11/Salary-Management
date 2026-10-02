@@ -15,7 +15,10 @@ Stack: Bun, Express 5 + Prisma 7 + PostgreSQL (backend), React Router v8 (SSR) +
 
 ## Run with Docker
 
+`JWT_SECRET` (32+ chars) is **required**; compose refuses to start without it. Put it in a root `.env` file (git-ignored; `docker compose` reads it automatically):
+
 ```bash
+cp .env.example .env                          # then set JWT_SECRET, e.g. the output of: openssl rand -hex 32
 docker compose up --build
 docker compose exec backend bun run db:seed   # one-time: create the dev admin
 ```
@@ -26,14 +29,14 @@ The backend applies pending migrations on start. Seeding is manual so it never r
 - API health check: `http://localhost:3001/health`
 - PostgreSQL: `localhost:5432` (`postgres` / `postgres`, database `salary_management`)
 
-Compose sets a **dev-only** `JWT_SECRET`; override it with the `JWT_SECRET` environment variable for anything real. Stop with `docker compose down` (add `-v` to delete the database volume).
+There is deliberately no default `JWT_SECRET`, so a deployment can never run with a publicly known signing key. Alternatively pass it inline: `JWT_SECRET=$(openssl rand -hex 32) docker compose up --build`. Stop with `docker compose down` (add `-v` to delete the database volume).
 
 Note: in compose `NODE_ENV=production`, so the session cookie is `Secure`. Browsers accept it on `http://localhost`, but not over plain HTTP on other hosts/IPs (and Safari may reject it even on localhost).
 
 ## Run locally without Docker
 
 ```bash
-docker compose up -d postgres          # database only
+docker compose up -d postgres          # database only (needs the root .env from above: compose validates JWT_SECRET for the whole file)
 
 cd backend
 cp .env.example .env                   # then set JWT_SECRET (32+ chars)
