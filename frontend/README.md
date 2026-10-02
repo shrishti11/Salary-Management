@@ -28,6 +28,10 @@ bun run test       # Vitest + React Testing Library
 | `/logout` | `routes/logout.tsx` | Action calls backend logout, relays cleared cookie, redirects to `/login` |
 | layout `routes/authenticated.tsx` | | Loader calls `GET /api/auth/me`; redirects to `/login` if not signed in. Wraps `AppLayout`. Put every protected route under it. |
 | `/dashboard` | `routes/dashboard.tsx` | Placeholder showing the signed-in user |
+| `/employees` | `routes/employees.tsx` | Directory. Search, filters, sort and pagination live in the URL query (loader canonicalises it); sample data comes from `bun run db:seed` in the backend |
+| `/employees/new` | `routes/employee-new.tsx` | Create form; action receives a JSON submit, redirects to the profile with `?notice=created`; 409 shows a field error |
+| `/employees/:id` | `routes/employee-profile.tsx` | Profile; activate/deactivate form action with confirmation dialog; `?notice=` drives a success toast; "Employee not found" on 404 |
+| `/employees/:id/edit` | `routes/employee-edit.tsx` | Edit form (employee ID read-only); redirects with `?notice=updated` |
 
 ## How auth and SSR work
 

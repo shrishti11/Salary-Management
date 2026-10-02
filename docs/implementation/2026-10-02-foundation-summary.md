@@ -16,7 +16,7 @@ Build the application foundation in small steps: (1) project structure, config a
 | 4 React MUI shell | MUI-only (Tailwind removed), `AppLayout` (AppBar, drawer nav, logout), `PageHeader`, error boundary, placeholder dashboard |
 | 5 Auth | Login/logout/me endpoints, `requireAuth` + `requireRole` middleware, frontend login form, shared authenticated layout loader, logout route |
 | 6 Shared data models | **Deliberately scoped to `User` + `Role` only** per the approved spec. Department/Employee/Salary models are NOT built; they belong to the Employee module |
-| 7 Tests + e2e | 30 backend + 18 frontend tests; real end-to-end checks (see Verification) |
+| 7 Tests + e2e | 32 backend + 19 frontend tests; real end-to-end checks (see Verification) |
 
 ## Key decisions
 
@@ -45,8 +45,8 @@ Frontend routes: `/` (redirect to `/dashboard`), `/login`, `/logout`, `/dashboar
 
 ## Tests
 
-Backend (8 files, 30 tests): `app.test.ts`, `config/env.test.ts`, `lib/jwt.test.ts`, `lib/password.test.ts`, `middleware/auth.middleware.test.ts`, `middleware/error.middleware.test.ts`, `modules/auth/auth.routes.test.ts`, `modules/auth/auth.service.test.ts`.
-Frontend (9 files, 18 tests): `components/layout/AppLayout.test.tsx`, `lib/api-client.test.ts`, `lib/require-user.test.ts`, `routes.test.ts`, `routes/authenticated.test.tsx`, `routes/dashboard.test.tsx`, `routes/login.action.test.ts`, `routes/login.test.tsx`, `routes/logout.test.ts`.
+Backend (8 files, 32 tests): `app.test.ts`, `config/env.test.ts`, `lib/jwt.test.ts`, `lib/password.test.ts`, `middleware/auth.middleware.test.ts`, `middleware/error.middleware.test.ts`, `modules/auth/auth.routes.test.ts`, `modules/auth/auth.service.test.ts`.
+Frontend (9 files, 19 tests): `components/layout/AppLayout.test.tsx`, `lib/api-client.test.ts`, `lib/require-user.test.ts`, `routes.test.ts`, `routes/authenticated.test.tsx`, `routes/dashboard.test.tsx`, `routes/login.action.test.ts`, `routes/login.test.tsx`, `routes/logout.test.ts`.
 
 ## Verification (Task 12)
 
@@ -71,10 +71,10 @@ Run against both `docker compose up --build` (fresh volume: migration applied on
 - Backend tests (only) depend on a local `backend/.env` / running Postgres (no CI env yet); frontend tests stub `fetch` and need neither; add vitest `setupFiles`/test env before CI. Test users may orphan if a run is killed (use upsert/pre-clean).
 - `.env` loading duplicated in `prisma7.config.ts` and `seed.ts` (plus `env.ts`); extract if more appear.
 - `VITE_API_URL` is baked at build time; changing the API URL needs a frontend rebuild.
-- Compose seed is manual; dev secret default in `docker-compose.yml` must be overridden for real use.
+- Compose seed is manual. `JWT_SECRET` is required in `docker-compose.yml` (no default; compose refuses to start without it).
 
 **Code minors (backend)**
-- `jwt.ts` uses `expiresIn as any` (use `SignOptions["expiresIn"]`); role typed `string` not the Prisma `Role` enum; no expired/wrong-secret token tests; weak cookie-attribute assertions in route tests; test gaps (non-string email, passwordHash absent from responses, stale-user `/me`); `AppError` lacks `this.name`.
+- `jwt.ts` uses `expiresIn as any` (use `SignOptions["expiresIn"]`); role typed `string` not the Prisma `Role` enum; no expired/wrong-secret token tests; (cookie-attribute assertions in route tests were strengthened in the final review round); test gaps (non-string email, passwordHash absent from responses, stale-user `/me`); `AppError` lacks `this.name`.
 
 **Code minors (frontend)**
 - `apiFetch` spreads `init.headers` (plain objects only) and forces `Content-Type: application/json` (breaks future FormData); an api-client test depends on `VITE_API_URL` being unset.

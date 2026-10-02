@@ -20,7 +20,7 @@ Stack: Bun, Express 5 + Prisma 7 + PostgreSQL (backend), React Router v8 (SSR) +
 ```bash
 cp .env.example .env                          # then set JWT_SECRET, e.g. the output of: openssl rand -hex 32
 docker compose up --build
-docker compose exec backend bun run db:seed   # one-time: create the dev admin
+docker compose exec backend bun run db:seed   # one-time: dev admin + sample departments and employees
 ```
 
 The backend applies pending migrations on start. Seeding is manual so it never runs automatically in a production-like container.
@@ -33,6 +33,14 @@ There is deliberately no default `JWT_SECRET`, so a deployment can never run wit
 
 Note: in compose `NODE_ENV=production`, so the session cookie is `Secure`. Browsers accept it on `http://localhost`, but not over plain HTTP on other hosts/IPs (and Safari may reject it even on localhost).
 
+## Features and API
+
+- Auth: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+- Employees (ADMIN and HR_MANAGER): `GET/POST /api/employees`, `GET/PATCH /api/employees/:id`, `PATCH /api/employees/:id/status`; `GET /api/departments`
+- UI routes: `/employees` (directory), `/employees/new`, `/employees/:id` (profile, activate/deactivate), `/employees/:id/edit`
+
+Details: [`backend/README.md`](backend/README.md), [`frontend/README.md`](frontend/README.md), [`docs/implementation/`](docs/implementation/).
+
 ## Run locally without Docker
 
 ```bash
@@ -42,7 +50,7 @@ cd backend
 cp .env.example .env                   # then set JWT_SECRET (32+ chars)
 bun install
 bun run db:deploy                      # apply migrations
-bun run db:seed                        # create the dev admin
+bun run db:seed                        # dev admin + 6 departments + 5 sample employees
 bun run dev                            # http://localhost:3001
 
 cd ../frontend                         # in another terminal
