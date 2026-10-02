@@ -130,6 +130,25 @@ describe("SalaryFormDialog", () => {
       });
     });
 
+    it("warns in the confirmation when the currency changes", async () => {
+      setup(props);
+      await userEvent.selectOptions(screen.getByLabelText("Currency"), "EUR");
+      await userEvent.type(screen.getByLabelText("Effective date"), "2026-03-01");
+      await userEvent.type(screen.getByLabelText("Reason"), "Relocation");
+      await userEvent.click(screen.getByRole("button", { name: "Save" }));
+      const confirm = await screen.findByRole("dialog", { name: "Save salary revision?" });
+      expect(confirm).toHaveTextContent("Currency changes from USD to EUR; amounts are not converted.");
+    });
+
+    it("shows no currency warning when the currency is unchanged", async () => {
+      setup(props);
+      await userEvent.type(screen.getByLabelText("Effective date"), "2026-03-01");
+      await userEvent.type(screen.getByLabelText("Reason"), "Promotion");
+      await userEvent.click(screen.getByRole("button", { name: "Save" }));
+      const confirm = await screen.findByRole("dialog", { name: "Save salary revision?" });
+      expect(confirm).not.toHaveTextContent("Currency changes");
+    });
+
     it("does not submit when the confirmation is cancelled", async () => {
       const { onSubmit } = setup(props);
       await userEvent.type(
@@ -151,6 +170,23 @@ describe("SalaryFormDialog", () => {
       );
       expect(onSubmit).not.toHaveBeenCalled();
     });
+  });
+
+  it("disables Add component at 29 extra components", async () => {
+    setup();
+    const add = screen.getByRole("button", { name: "Add component" });
+    for (let i = 0; i < 29; i++) await userEvent.click(add);
+    expect(screen.getAllByLabelText("Component name")).toHaveLength(29);
+    expect(add).toBeDisabled();
+  });
+
+  it("shows the JPY decimals error under the base amount", async () => {
+    setup();
+    await userEvent.selectOptions(screen.getByLabelText("Currency"), "JPY");
+    await userEvent.type(screen.getByLabelText("Effective date"), "2026-03-01");
+    await userEvent.type(screen.getByLabelText("Base salary"), "5000.50");
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("JPY/KRW amounts cannot have decimals")).toBeInTheDocument();
   });
 
   it("shows a field server error under the field", async () => {

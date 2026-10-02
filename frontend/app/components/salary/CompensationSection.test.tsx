@@ -167,10 +167,31 @@ describe("CompensationSection", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Revise salary" }),
-    ).not.toBeInTheDocument();
-    expect(
       screen.getByRole("table", { name: "Salary history" }),
     ).toBeInTheDocument();
+  });
+
+  it("offers revise (not set) when the only record is scheduled", async () => {
+    const handlers = renderSection({
+      ok: true,
+      data: { current: null, scheduled, history: [scheduled] },
+    });
+    expect(
+      screen.queryByRole("button", { name: "Set salary" }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Revise salary" }),
+    );
+    expect(handlers.onReviseSalary).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides revise for an inactive employee with only a scheduled record", () => {
+    renderSection(
+      { ok: true, data: { current: null, scheduled, history: [scheduled] } },
+      { employeeActive: false },
+    );
+    expect(
+      screen.queryByRole("button", { name: "Revise salary" }),
+    ).not.toBeInTheDocument();
   });
 });

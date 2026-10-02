@@ -84,6 +84,34 @@ describe("makeSalaryFormSchema", () => {
     expect(initial.safeParse(valid({ effectiveDate: "" })).success).toBe(false);
   });
 
+  it.each(["JPY", "KRW"])("%s accepts whole amounts, including .0 and .00", (currency) => {
+    for (const amount of ["5000", "5000.0", "5000.00"]) {
+      expect(initial.safeParse(valid({ currency, baseAmount: amount })).success).toBe(true);
+    }
+  });
+
+  it("JPY rejects fractional base and extra amounts on the offending field", () => {
+    const base = initial.safeParse(valid({ currency: "JPY", baseAmount: "5000.50" }));
+    expect(!base.success && base.error.issues.map((i) => [i.path.join("."), i.message])).toEqual([
+      ["baseAmount", "JPY/KRW amounts cannot have decimals"],
+    ]);
+    const extra = initial.safeParse(
+      valid({ currency: "KRW", extras: [{ type: "BONUS", name: "b", amount: "0.40" }] }),
+    );
+    expect(!extra.success && extra.error.issues.map((i) => i.path.join("."))).toEqual(["extras.0.amount"]);
+  });
+
+  it("USD is unaffected by the zero-decimal rule", () => {
+    expect(initial.safeParse(valid({ baseAmount: "5000.50" })).success).toBe(true);
+  });
+
+  it("allows 29 extras but not 30", () => {
+    const extras = (n: number) =>
+      Array.from({ length: n }, (_, i) => ({ type: "BONUS" as const, name: `b${i}`, amount: "1" }));
+    expect(initial.safeParse(valid({ extras: extras(29) })).success).toBe(true);
+    expect(initial.safeParse(valid({ extras: extras(30) })).success).toBe(false);
+  });
+
   it("rejects extra with empty name", () => {
     expect(initial.safeParse(valid({ extras: [{ type: "BONUS", name: " ", amount: "10" }] })).success).toBe(false);
   });

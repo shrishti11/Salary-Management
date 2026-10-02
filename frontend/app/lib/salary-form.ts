@@ -4,6 +4,12 @@ import type { Salary, SalaryPayload } from "~/lib/salaries-api";
 
 const AMOUNT = /^\d{1,12}(\.\d{1,2})?$/;
 const AMOUNT_MESSAGE = "Enter an amount like 5000 or 5000.50";
+// JPY and KRW have no minor unit: reject any non-zero fractional part ("5000", "5000.0" and "5000.00" are fine,
+// "5000.50" is not). Keep identical to backend/src/modules/salaries/salary.schema.ts.
+const ZERO_DECIMAL_CURRENCIES = new Set(["JPY", "KRW"]);
+const ZERO_DECIMAL_MESSAGE = "JPY/KRW amounts cannot have decimals";
+const hasFraction = (amount: string) => /\.\d*[1-9]/.test(amount);
+export const MAX_EXTRAS = 29;
 export const EXTRA_TYPES = ["ALLOWANCE", "BONUS", "DEDUCTION"] as const;
 
 export type SalaryFormValues = {
@@ -51,18 +57,28 @@ export function makeSalaryFormSchema(mode: "initial" | "revise") {
         .regex(/^\d{4}-\d{2}-\d{2}$/, "Enter a valid date"),
       reason,
       baseAmount: z.string().trim().regex(AMOUNT, AMOUNT_MESSAGE),
-      extras: z.array(
-        z.object({
-          type: z.enum(EXTRA_TYPES),
-          name: z.string().trim().min(1, "Name is required").max(100, "Too long"),
-          amount: z.string().trim().regex(AMOUNT, AMOUNT_MESSAGE),
-        }),
-      ),
+      extras: z
+        .array(
+          z.object({
+            type: z.enum(EXTRA_TYPES),
+            name: z.string().trim().min(1, "Name is required").max(100, "Too long"),
+            amount: z.string().trim().regex(AMOUNT, AMOUNT_MESSAGE),
+          }),
+        )
+        .max(MAX_EXTRAS, `At most ${MAX_EXTRAS} additional components`),
     })
     .superRefine((values, ctx) => {
       const base = values.baseAmount.trim();
       if (AMOUNT.test(base) && cents(base) <= 0) {
         ctx.addIssue({ code: "custom", path: ["baseAmount"], message: "Base salary must be greater than 0" });
+      }
+      if (ZERO_DECIMAL_CURRENCIES.has(values.currency)) {
+        if (hasFraction(base)) ctx.addIssue({ code: "custom", path: ["baseAmount"], message: ZERO_DECIMAL_MESSAGE });
+        values.extras.forEach((extra, index) => {
+          if (hasFraction(extra.amount.trim())) {
+            ctx.addIssue({ code: "custom", path: ["extras", index, "amount"], message: ZERO_DECIMAL_MESSAGE });
+          }
+        });
       }
       const seen = new Set<string>();
       values.extras.forEach((extra, index) => {

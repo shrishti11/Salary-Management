@@ -362,6 +362,42 @@ describe("employee profile compensation", () => {
     );
   });
 
+  it("revises a scheduled-only history, prefilled from the future record", async () => {
+    const user = userEvent.setup();
+    const future = salary({
+      id: "s9",
+      effectiveDate: "2026-12-01",
+      status: "SCHEDULED",
+      components: [{ id: "c9", type: "BASE", name: "Base salary", amount: "7000.00" }],
+      totals: { gross: "7000.00", deductions: "0.00", net: "7000.00" },
+    });
+    backend(() => json({ current: null, scheduled: future, history: [future] }));
+    renderAt("/employees/e1");
+
+    expect(screen.queryByRole("button", { name: "Set salary" })).not.toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: "Revise salary" }));
+    const dialog = await screen.findByRole("dialog", { name: "Revise salary" });
+    expect(within(dialog).getByLabelText("Base salary")).toHaveValue("7000.00");
+    expect(within(dialog).getByLabelText("Effective date")).toHaveAttribute("min", "2026-12-02");
+  });
+
+  it("prefills the revise form from the latest record, not the current one", async () => {
+    const user = userEvent.setup();
+    const april = salary({
+      id: "s8",
+      effectiveDate: "2026-12-01",
+      status: "SCHEDULED",
+      components: [{ id: "c8", type: "BASE", name: "Base salary", amount: "6000.00" }],
+      totals: { gross: "6000.00", deductions: "0.00", net: "6000.00" },
+    });
+    backend(() => json({ current: salary(), scheduled: april, history: [april, salary()] }));
+    renderAt("/employees/e1");
+
+    await user.click(await screen.findByRole("button", { name: "Revise salary" }));
+    const dialog = await screen.findByRole("dialog", { name: "Revise salary" });
+    expect(within(dialog).getByLabelText("Base salary")).toHaveValue("6000.00");
+  });
+
   it("keeps the dialog open and shows the server message under the date field on 409", async () => {
     const user = userEvent.setup();
     backend((_url, init) =>
@@ -474,5 +510,33 @@ describe("employee profile action", () => {
       vi.fn().mockResolvedValue(json({ error: { message: "Employee not found", code: "NOT_FOUND" } }, 404)),
     );
     expect(await call("ACTIVE")).toEqual({ error: "Employee not found" });
+  });
+
+  const callSalary = (body: string) =>
+    action({
+      request: new Request("http://localhost:3000/employees/e1", {
+        method: "POST",
+        body,
+        headers: { cookie: "session=abc", "content-type": "application/json" },
+      }),
+      params: { id: "e1" },
+      context: {},
+    } as Parameters<typeof action>[0]);
+
+  it("returns Invalid salary data for a malformed JSON body without calling the backend", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await callSalary("{not json")).toEqual({ error: "Invalid salary data" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("returns Invalid salary data for a JSON body missing reason or extras", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const partial = { currency: "USD", effectiveDate: "2026-12-01", baseAmount: "5000" };
+    expect(await callSalary(JSON.stringify(partial))).toEqual({ error: "Invalid salary data" });
+    expect(await callSalary(JSON.stringify({ ...partial, reason: "x" }))).toEqual({ error: "Invalid salary data" });
+    expect(await callSalary("null")).toEqual({ error: "Invalid salary data" });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

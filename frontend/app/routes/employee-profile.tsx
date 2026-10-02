@@ -26,8 +26,13 @@ export async function action({
   params,
 }: Route.ActionArgs): Promise<{ message: string } | ({ error: string } & Partial<SalaryFieldError>)> {
   if (request.headers.get("content-type")?.includes("application/json")) {
-    const values = (await request.json()) as SalaryFormValues;
-    const result = await createSalary(request, params.id, toPayload(values));
+    let payload: ReturnType<typeof toPayload>;
+    try {
+      payload = toPayload((await request.json()) as SalaryFormValues);
+    } catch {
+      return { error: "Invalid salary data" };
+    }
+    const result = await createSalary(request, params.id, payload);
     return result.ok ? { message: "Salary saved" } : { error: result.message, ...toSalaryFormError(result) };
   }
 
@@ -131,7 +136,8 @@ export default function EmployeeProfile() {
     setSalaryError(null);
     setDialog({
       mode,
-      current: overview?.current ?? null,
+      // Revise from the latest record (not `current`): a scheduled record supersedes it.
+      current: latest ?? null,
       minDate:
         latest && nextDay(latest.effectiveDate) > employee.joiningDate
           ? nextDay(latest.effectiveDate)

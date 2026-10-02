@@ -149,7 +149,7 @@ export default function CompensationSection({
         <Typography variant="h6" component="h2">
           Compensation
         </Typography>
-        {employeeActive && current && (
+        {employeeActive && (
           <Button variant="contained" onClick={onReviseSalary}>
             Revise salary
           </Button>

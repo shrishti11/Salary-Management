@@ -18,6 +18,7 @@ import { CURRENCIES, formatMoney } from "~/lib/currencies";
 import {
   computeFormTotals,
   EXTRA_TYPES,
+  MAX_EXTRAS,
   makeSalaryFormSchema,
   valuesFromSalary,
   type SalaryFormValues,
@@ -117,7 +118,11 @@ export default function SalaryFormDialog({
         computeFormTotals(pending)
           ? formatMoney(computeFormTotals(pending)!.net, pending.currency)
           : "—"
-      } effective ${pending.effectiveDate}. The previous record is kept in history.`
+      } effective ${pending.effectiveDate}. The previous record is kept in history.${
+        current && pending.currency !== current.currency
+          ? ` Currency changes from ${current.currency} to ${pending.currency}; amounts are not converted.`
+          : ""
+      }`
     : "";
 
   return (
@@ -307,7 +312,7 @@ export default function SalaryFormDialog({
                   onClick={() =>
                     append({ type: "ALLOWANCE", name: "", amount: "" })
                   }
-                  disabled={submitting}
+                  disabled={submitting || fields.length >= MAX_EXTRAS}
                 >
                   Add component
                 </Button>
