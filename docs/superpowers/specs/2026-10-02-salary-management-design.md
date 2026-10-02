@@ -71,6 +71,7 @@ The `onDelete: Cascade` on components is safe because records themselves are nev
 - `effectiveDate`: `YYYY-MM-DD`, real date.
 - `reason`: trimmed, 3-500 chars; optional only for the first record.
 - `components`: array, 1-30 items. Each `{ type, name, amount }`: `name` trimmed 1-100 chars; `amount` a decimal string `^\d{1,12}(\.\d{1,2})?$`, `>= 0`, and `> 0` for `BASE`. Exactly one `BASE`. No duplicate (type, name) pairs (case-insensitive).
+- Zero-decimal currencies: for `JPY` and `KRW` any non-zero fractional part is rejected (`5000`, `5000.0`, `5000.00` pass; `5000.50` fails), on both backend (issue on `components`) and frontend (issue on the offending field), so displayed amounts always equal stored amounts.
 - Service rules (not schema): net >= 0; date not before joining date; date after latest record; employee active; employee exists.
 - Strict object: unknown keys are rejected. IDs in paths must be UUIDs (else 400).
 

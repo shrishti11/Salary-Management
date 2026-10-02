@@ -259,6 +259,21 @@ describe("creating salary records", () => {
     expect(list.scheduled.id).toBe(future.body.salary.id);
   });
 
+  it("reports the nearest upcoming record as scheduled when several are future-dated", async () => {
+    const emp = await makeEmployee();
+    const near = await post(emp.id, body({ effectiveDate: day(30) }));
+    const far = await post(emp.id, body({ effectiveDate: day(60), reason: "Promotion" }));
+    expect(near.status).toBe(201);
+    expect(far.status).toBe(201);
+    const list = (await agent.get(`/api/employees/${emp.id}/salaries`)).body;
+    expect(list.current).toBeNull();
+    expect(list.scheduled.id).toBe(near.body.salary.id);
+    expect(list.history.map((r: { id: string; status: string }) => [r.id, r.status])).toEqual([
+      [far.body.salary.id, "SCHEDULED"],
+      [near.body.salary.id, "SCHEDULED"],
+    ]);
+  });
+
   it("omits change when the currency changes", async () => {
     const emp = await makeEmployee();
     await post(emp.id, body());
@@ -286,6 +301,7 @@ describe("concurrency", () => {
     const same = body({ reason: "Concurrent" });
     const results = await Promise.all([post(emp.id, same), post(emp.id, same)]);
     expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+    expect(results.find((r) => r.status === 409)!.body.error.code).toBe("DUPLICATE_EFFECTIVE_DATE");
     expect((await agent.get(`/api/employees/${emp.id}/salaries`)).body.history).toHaveLength(1);
   });
 
@@ -308,11 +324,13 @@ describe("concurrency", () => {
       settled = true;
       return r;
     });
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    expect(settled).toBe(false);
-
-    release();
-    await holder;
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      expect(settled).toBe(false);
+    } finally {
+      release();
+      await holder.catch(() => undefined);
+    }
     const res = await pending;
     expect(res.status).toBe(201);
   });

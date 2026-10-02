@@ -80,6 +80,7 @@ Errors:
 - `currency`: trimmed, uppercased, one of the supported ISO 4217 codes. `effectiveDate`: `YYYY-MM-DD`, a real calendar date.
 - `reason`: trimmed, 3-500 chars; required for a revision, optional for the first record (defaults to "Initial salary").
 - `components`: 1-30 items `{ type, name, amount }`; `name` trimmed 1-100 chars; `amount` a decimal string `^\d{1,12}(\.\d{1,2})?$`; exactly one `BASE`, with amount greater than 0; no duplicate (type, name), case-insensitive. Strict object: unknown keys rejected.
+- Zero-decimal currencies: for `JPY` and `KRW` a non-zero fractional part is rejected (`5000`, `5000.0`, `5000.00` pass; `5000.50` fails) in the backend schema (issue on `components`) and the frontend form schema (issue on `baseAmount` or `extras.i.amount`), so displayed amounts equal stored ones.
 - Service rules, checked in this order inside the transaction: employee exists, employee active, reason present for a revision, date not before joining date, date strictly after the newest record (equal -> `DUPLICATE_EFFECTIVE_DATE`, earlier -> `EFFECTIVE_DATE_NOT_AFTER_LATEST`), net not negative.
 - IDs in paths must be UUIDs (else 400).
 

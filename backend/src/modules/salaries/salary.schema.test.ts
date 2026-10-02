@@ -15,6 +15,22 @@ const withAmount = (amount: string) => ok({ components: [{ ...base, amount }] })
 const UUID = "123e4567-e89b-42d3-a456-426614174000";
 
 describe("createSalarySchema", () => {
+  it.each(["JPY", "KRW", "jpy"])("%s accepts whole amounts, including .0 and .00", (currency) => {
+    for (const amount of ["5000", "5000.0", "5000.00"]) {
+      expect(createSalarySchema.safeParse(ok({ currency, components: [{ ...base, amount }] })).success).toBe(true);
+    }
+  });
+  it.each(["JPY", "KRW"])("%s rejects fractional amounts on components", (currency) => {
+    for (const amount of ["5000.50", "5000.05", "5000.5"]) {
+      const result = createSalarySchema.safeParse(ok({ currency, components: [{ ...base, amount }] }));
+      expect(result.success).toBe(false);
+      expect(!result.success && result.error.issues[0]?.path).toEqual(["components"]);
+    }
+    fails(ok({ currency, components: [base, { type: "BONUS", name: "Bonus", amount: "0.40" }] }));
+  });
+  it("USD still accepts fractional amounts", () => {
+    expect(createSalarySchema.safeParse(withAmount("5000.50")).success).toBe(true);
+  });
   it("accepts valid input", () => {
     expect(createSalarySchema.safeParse(ok()).success).toBe(true);
   });
