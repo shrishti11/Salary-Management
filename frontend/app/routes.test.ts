@@ -17,7 +17,7 @@ describe("route config", () => {
     const layoutEntry = config.find((r) => r.file === `${AUTHENTICATED_ROUTE_ID}.tsx`);
     const paths = layoutEntry?.children?.map((c) => c.path);
 
-    // later tasks extend this with employees/new, employees/:id, employees/:id/edit
-    expect(paths).toEqual(expect.arrayContaining(["employees"]));
+    // employees/:id is added with the profile page
+    expect(paths).toEqual(expect.arrayContaining(["employees", "employees/new", "employees/:id/edit"]));
   });
 });
