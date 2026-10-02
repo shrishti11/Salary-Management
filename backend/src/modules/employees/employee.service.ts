@@ -128,7 +128,7 @@ export async function setEmployeeStatus(id: string, status: EmployeeStatusValue)
 }
 
 // Prisma does not escape LIKE wildcards, so escape them to search literally.
-const contains = (token: string) => ({
+export const contains = (token: string) => ({
   contains: token.replace(/[\\%_]/g, "\\$&"),
   mode: "insensitive" as const,
 });

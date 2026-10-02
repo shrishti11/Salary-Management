@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { COUNTRY_CODES } from "../../lib/countries.ts";
 import { CURRENCY_CODES } from "../../lib/currencies.ts";
 
 // JPY and KRW have no minor unit: reject any non-zero fractional part ("5000", "5000.0" and "5000.00" are fine,
@@ -53,3 +54,22 @@ export type CreateSalaryInput = z.infer<typeof createSalarySchema>;
 
 export const employeeIdParamSchema = z.object({ id: z.uuid() });
 export const salaryParamsSchema = z.object({ id: z.uuid(), salaryId: z.uuid() });
+
+export const DIRECTORY_SORT_FIELDS = ["name", "employeeCode", "department", "country", "effectiveDate"] as const;
+export type DirectorySortField = (typeof DIRECTORY_SORT_FIELDS)[number];
+
+export const listDirectoryQuerySchema = z
+  .object({
+    page: z.coerce.number().int().min(1).default(1),
+    pageSize: z.coerce.number().int().min(1).max(100).default(20),
+    q: z.string().trim().max(100).optional(),
+    departmentId: z.uuid().optional(),
+    country: z.enum(COUNTRY_CODES).optional(),
+    status: z.enum(["ACTIVE", "INACTIVE", "ALL"]).default("ACTIVE"),
+    salary: z.enum(["with", "without"]).optional(),
+    sortBy: z.enum(DIRECTORY_SORT_FIELDS).default("name"),
+    sortOrder: z.enum(["asc", "desc"]).default("asc"),
+  })
+  .strict();
+
+export type ListDirectoryQuery = z.infer<typeof listDirectoryQuerySchema>;
