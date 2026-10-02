@@ -94,7 +94,7 @@ describe("GET /api/analytics/summary", () => {
   });
 
   it("rejects bad params with 400", async () => {
-    for (const qs of ["?basis=weird", "?country=XX", "?currency=ZZZ", "?departmentId=nope", "?asOf=2024-02-30", "?bogus=1", "?status=all"]) {
+    for (const qs of ["?basis=weird", "?country=XX", "?currency=ZZZ", "?departmentId=nope", "?asOf=2024-02-30", "?asOf=0000-01-01", "?asOf=1899-12-31", "?bogus=1", "?status=all"]) {
       const res = await fx.agent.get(`/api/analytics/summary${qs}`);
       expect(res.status, qs).toBe(400);
     }

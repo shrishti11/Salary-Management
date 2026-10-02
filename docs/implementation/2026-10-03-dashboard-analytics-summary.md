@@ -58,13 +58,16 @@ Filter params (shared): `departmentId` (UUID), `country` (supported code), `desi
 - Ruling: one shared currency selector in the filter bar instead of per-panel selectors (simpler, one URL param, consistent panels). Recorded as a spec delta.
 - `suppress` flag on `getGroups` (default true): the dashboard turns it off, the comparison view keeps it.
 - Recent activity derives from `createdAt` and covers new employees and salary revisions only; employee edits are not tracked until the Audit module.
-- No caching or materialised views; each request aggregates in Postgres. The existing `(employeeId, effectiveDate)` unique index serves the current-salary lookup.
+- No caching or materialised views; each request aggregates in Postgres. The existing `(employeeId, effectiveDate)` unique index helps the join; the `DISTINCT ON` runs over the aggregated per-record CTE (`rec`), which sums components for every record up to `asOf`.
+- Interpretation: the original request's "Quick insights" is the dashboard's per-currency salary overview (total, average, median), headcount cards and department/country distribution; there is no separate insights panel. Follow-up idea: a small insights card (top department by headcount, highest average department per currency).
+- The spec's separate role (designation) table panel is not built; the Role toggle in Compare groups covers it.
+- Dates: years below 1900 are rejected (backend 400; frontend params and date inputs ignore them).
 - Reused `computeTotals` / `computeChange` from `salary.calc.ts` for recent revisions, and `apiCall` / `formatMoney` / `PageHeader` on the frontend.
 
 ## Tests and checks (final run, this task)
 
-- Backend: `bun run typecheck` clean; `bun run test` 20 files, 238 tests passing (against local Postgres).
-- Frontend: `bun run typecheck` clean; `bun run test` 34 files, 252 tests passing; `bun run build` succeeds.
+- Backend: `bun run typecheck` clean; `bun run test` 20 files, 240 tests passing (against local Postgres).
+- Frontend: `bun run typecheck` clean; `bun run test` 34 files, 256 tests passing; `bun run build` succeeds.
 - Backend coverage (`analytics.summary/groups/trends`, `dashboard` tests): current-salary selection, basis, stat exactness, per-currency separation, status and each filter, no-salary counts, distribution edges, group suppression, trends rules and range errors, dashboard shape and recent lists, 400/401/403.
 - Frontend coverage: `analytics-api` (params, fetchers, defaults omitted), filters, panels and tables (data, empty, error), dashboard components, routes, AppLayout nav.
 - Manual pass (curl, not a browser): backend from source on port 3101 and the frontend dev server on 3100 against the seeded dev DB, logged in as the seeded admin. Unauthenticated `/dashboard` and `/analytics` return 302 to `/login`. Authenticated `/dashboard`, `/analytics`, `/analytics?currency=INR&basis=net`, `/analytics?country=ZZ` and `/analytics?groupBy=country&status=ALL` return 200. The SSR HTML showed the expected headings, per-currency amounts (INR/net showed rupees only, no GBP or USD amounts mixed) and the empty state in the Trends panel (the default 12-month window excludes the seed revisions dated 2022/2023). All six API endpoints return 200 and an unknown param returns 400; no response contained a total across currencies. Servers were stopped afterwards.
@@ -78,19 +81,20 @@ Filter params (shared): `departmentId` (UUID), `country` (supported code), `desi
 - Recent activity is derived from `createdAt`, covers salary revisions and new employees only, and does not track employee edits until Audit.
 - "Today" and "as of" are UTC on the server.
 - Group suppression (under 3) is a convention, not access control.
+- A dashboard request runs the population CTE several times (summary x2, groups x2 per groupBy); fine at ~10k employees. If scale grows, pick the current record first (`DISTINCT ON` over `SalaryRecord` alone) and join only its components.
 - Median and percentiles are computed per request (no caching); `percentile_cont` uses double precision before rounding to 2 dp.
 - Charts plot display-only floats (`Number(...)`); the exact decimal strings are in the adjacent tables.
 - `getRecentRevisions` does up to `limit` (5) follow-up queries for the previous record (N+1); the exported `limit` is unbounded.
 - The seed has revisions dated 2022 and 2023 (EMP-0001, EMP-0002), so the Trends panel shows its empty state on seed data only because the default window is the last 12 months; for example `from=2021-01-01&to=2023-12-31` shows them. The dashboard recent-revisions list is non-empty on seed data.
-- Date inputs can emit partial-year dates (for example `0002-01-31`) while typing, causing a junk navigation; the UI has no `from > to` guard (the backend returns 400 `INVALID_DATE_RANGE`, shown inline in the Trends panel).
+- The UI has no `from > to` guard (the backend returns 400 `INVALID_DATE_RANGE`, shown inline in the Trends panel).
 - If the groups call fails, the Compare groups panel shows only the error, so the group-by toggle is hidden (state stays in the URL).
 - `prettier` is not configured; there is no lint script.
 - No real-browser click-through (see above).
 
 ## Known follow-ups (deferred review minors)
 
-- Backend: no test for the distribution span under 10 cents; redundant positional `ORDER BY` in the `getGroups` stats query; the trends "future-dated ignored" test only checks `status=ALL`, and the trends empty-currencies test depends on the clock; `any` types and an inline dynamic prisma import in the summary test; a dashboard test comment mentions unasserted cases.
-- Frontend: no parse/serialise round-trip test; `hasActiveAnalyticsFilters` (counts asOf/from/to) is convoluted and untested; fetchers for summary and distribution, and non-default basis/status, are untested; chart colours are hard-coded hex; `ClientOnly` is untested; some tests use brittle DOM-depth selectors or `getAllByText`; the summary fixture does not discriminate the "most populous" ordering; panels fall back to their own first currency if the summary fails; there are two "Compensation summary" headings; no rapid-successive-change test; one misleading test name.
+- Backend: the trends "future-dated ignored" test only checks `status=ALL`, and the trends empty-currencies test depends on the clock; `any` types and an inline dynamic prisma import in the summary test; a dashboard test comment mentions unasserted cases.
+- Frontend: no parse/serialise round-trip test; `hasActiveAnalyticsFilters` (counts asOf/from/to) is convoluted and untested; fetchers for summary and distribution, and non-default basis/status, are untested; chart colours are hard-coded hex; `ClientOnly` is untested; some tests use brittle DOM-depth selectors or `getAllByText`; the summary fixture does not discriminate the "most populous" ordering; panels fall back to their own first currency if the summary fails; no rapid-successive-change test; one misleading test name.
 
 ## Next session
 

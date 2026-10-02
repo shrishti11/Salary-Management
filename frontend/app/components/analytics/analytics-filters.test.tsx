@@ -55,6 +55,18 @@ describe("AnalyticsFilters", () => {
     expect(screen.getByLabelText("To")).toHaveAttribute("max", new Date().toISOString().slice(0, 10));
   });
 
+  it("ignores partially typed years before 1900", () => {
+    const { onChange } = setup();
+    fireEvent.change(screen.getByLabelText("As of"), { target: { value: "0002-01-31" } });
+    fireEvent.change(screen.getByLabelText("From"), { target: { value: "1899-12-31" } });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("keeps a designation that is not in the options selectable", () => {
+    setup({ ...DEFAULT_ANALYTICS_PARAMS, designation: "Retired Role" });
+    expect(screen.getByLabelText("Role")).toHaveValue("Retired Role");
+  });
+
   it("emits the empty string when a date is cleared", () => {
     const { onChange } = setup({ ...DEFAULT_ANALYTICS_PARAMS, to: "2024-12-31" });
     fireEvent.change(screen.getByLabelText("To"), { target: { value: "" } });

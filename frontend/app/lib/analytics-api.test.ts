@@ -15,6 +15,10 @@ describe("parseAnalyticsParams", () => {
   it("falls back to defaults for missing or invalid values", () => {
     expect(parseAnalyticsParams(new URLSearchParams("status=bogus&basis=x&groupBy=level&country=ZZ&asOf=2024-02-30&departmentId=nope"))).toEqual(DEFAULT_ANALYTICS_PARAMS);
   });
+  it("drops dates with years before 1900", () => {
+    const p = parseAnalyticsParams(new URLSearchParams("asOf=0002-01-31&from=1899-12-31&to=1900-01-01"));
+    expect(p).toMatchObject({ asOf: "", from: "", to: "1900-01-01" });
+  });
   it("reads valid values", () => {
     const p = parseAnalyticsParams(new URLSearchParams("status=ALL&basis=net&groupBy=country&country=US&currency=USD&designation=Engineer&asOf=2025-01-31&from=2024-01-01&to=2024-12-31"));
     expect(p).toMatchObject({ status: "ALL", basis: "net", groupBy: "country", country: "US", currency: "USD", designation: "Engineer", asOf: "2025-01-31", from: "2024-01-01", to: "2024-12-31" });

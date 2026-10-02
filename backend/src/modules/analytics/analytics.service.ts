@@ -2,6 +2,7 @@ import { Prisma } from "../../../generated/prisma/client.ts";
 import { prisma } from "../../lib/prisma.ts";
 import { monthsBetween, startOfMonthsAgo, todayUtc } from "./analytics.dates.ts";
 import { AppError } from "../../middleware/error.middleware.ts";
+import { formatCents } from "../salaries/salary.calc.ts";
 import type { TrendsQuery } from "./analytics.schema.ts";
 import { STATS_COLUMNS, populationCtes, employeeConditions, type PopulationFilters } from "./analytics.sql.ts";
 
@@ -55,8 +56,6 @@ export interface DistributionBucket {
   count: number;
 }
 
-const centsToString = (cents: number) => `${Math.floor(cents / 100)}.${String(cents % 100).padStart(2, "0")}`;
-
 export async function getDistribution(f: SummaryFilters) {
   const rows = await prisma.$queryRaw<{ currency: string; lo: string; hi: string; bucket: number; n: number }[]>(Prisma.sql`
     WITH ${populationCtes(f)},
@@ -90,8 +89,8 @@ export async function getDistribution(f: SummaryFilters) {
       const n = counts.get(i) ?? 0;
       count += n;
       buckets.push({
-        from: centsToString(edge(i)),
-        to: centsToString(i === k - 1 ? hi : edge(i + 1) - 1),
+        from: formatCents(edge(i)),
+        to: formatCents(i === k - 1 ? hi : edge(i + 1) - 1),
         count: n,
       });
     }
@@ -139,7 +138,7 @@ export async function getGroups(f: GroupFilters): Promise<{ asOf: string; basis:
       SELECT ${empKey}::text AS key, COUNT(*)::int AS headcount FROM emp GROUP BY 1`),
     prisma.$queryRaw<(CurrencyStats & { key: string })[]>(Prisma.sql`
       WITH ${populationCtes(f)}
-      SELECT ${popKey}::text AS key, currency, ${STATS_COLUMNS} FROM pop GROUP BY 1, currency ORDER BY 1, 3 DESC, currency`),
+      SELECT ${popKey}::text AS key, currency, ${STATS_COLUMNS} FROM pop GROUP BY 1, currency`),
   ]);
 
   const labels = new Map<string, string>();
@@ -221,6 +220,7 @@ export async function getTrends(query: TrendsQuery) {
       FROM "SalaryRecord" sr
       JOIN emp ON emp.id = sr."employeeId"
       LEFT JOIN "SalaryComponent" sc ON sc."salaryRecordId" = sr.id
+      WHERE sr."effectiveDate" <= ${to}::date
       GROUP BY sr.id
     ),
     seq AS (

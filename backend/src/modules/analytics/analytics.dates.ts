@@ -24,5 +24,5 @@ export function startOfMonthsAgo(date: string, count: number): string {
   const total = Number(date.slice(0, 4)) * 12 + (Number(date.slice(5, 7)) - 1) - count;
   const year = Math.floor(total / 12);
   const month = (total % 12) + 1;
-  return `${year}-${String(month).padStart(2, "0")}-01`;
+  return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`;
 }

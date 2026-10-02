@@ -51,8 +51,9 @@ export const DEFAULT_ANALYTICS_PARAMS: AnalyticsParams = {
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const realDate = (value: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value) && new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value ? value : "";
+export const isRealDate = (value: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(value) && Number(value.slice(0, 4)) >= 1900 && new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value;
+const realDate = (value: string) => (isRealDate(value) ? value : "");
 
 export function parseAnalyticsParams(sp: URLSearchParams): AnalyticsParams {
   const get = (key: string) => sp.get(key) ?? "";

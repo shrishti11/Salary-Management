@@ -1,6 +1,6 @@
 import { Box, Button, TextField } from "@mui/material";
 
-import { hasActiveAnalyticsFilters, type AnalyticsParams, type FilterOptions } from "~/lib/analytics-api";
+import { hasActiveAnalyticsFilters, isRealDate, type AnalyticsParams, type FilterOptions } from "~/lib/analytics-api";
 import { COUNTRIES } from "~/lib/countries";
 
 interface Props {
@@ -14,13 +14,13 @@ interface Props {
 
 const NATIVE_SELECT = { select: { native: true }, inputLabel: { shrink: true } } as const;
 const DATE_FIELD = { inputLabel: { shrink: true } } as const;
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const countryName = (code: string) => COUNTRIES.find((c) => c.code === code)?.name ?? code;
 
 export default function AnalyticsFilters({ params, effectiveCurrency, options, onChange, onClear }: Props) {
   const currencies = effectiveCurrency && !options.currencies.includes(effectiveCurrency) ? [effectiveCurrency, ...options.currencies] : options.currencies;
+  const designations = params.designation && !options.designations.includes(params.designation) ? [params.designation, ...options.designations] : options.designations;
   const date = (key: "asOf" | "from" | "to") => (value: string) => {
-    if (value === "" || DATE.test(value)) onChange({ [key]: value });
+    if (value === "" || isRealDate(value)) onChange({ [key]: value });
   };
   const today = new Date().toISOString().slice(0, 10);
 
@@ -44,7 +44,7 @@ export default function AnalyticsFilters({ params, effectiveCurrency, options, o
       </TextField>
       <TextField id="analytics-designation" select label="Role" size="small" value={params.designation} onChange={(e) => onChange({ designation: e.target.value })} slotProps={NATIVE_SELECT} sx={{ minWidth: 160 }}>
         <option value="">All</option>
-        {options.designations.map((d) => (
+        {designations.map((d) => (
           <option key={d} value={d}>
             {d}
           </option>

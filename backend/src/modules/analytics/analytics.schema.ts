@@ -7,6 +7,7 @@ import { todayUtc } from "./analytics.dates.ts";
 const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/)
+  .refine((value) => Number(value.slice(0, 4)) >= 1900, "Year must be 1900 or later")
   .refine((value) => new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value, "Not a real date");
 
 const filterShape = {

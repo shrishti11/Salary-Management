@@ -69,7 +69,7 @@ describe("GET /api/analytics/trends", () => {
   it("rejects invalid ranges", async () => {
     const d = encodeURIComponent(fx.designation);
     const future = new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10);
-    for (const qs of [`&from=2025-02-01&to=2025-01-01`, `&to=${future}`, `&from=2015-01-01&to=2025-12-31`, `&from=2024-02-30`]) {
+    for (const qs of [`&from=2025-02-01&to=2025-01-01`, `&to=${future}`, `&from=2015-01-01&to=2025-12-31`, `&from=2024-02-30`, `&from=0001-01-01`]) {
       const res = await fx.agent.get(`/api/analytics/trends?designation=${d}${qs}`);
       expect(res.status, qs).toBe(400);
     }

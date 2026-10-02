@@ -137,7 +137,7 @@ export default function Analytics() {
             result={summary}
             empty={summary.ok && (noData || !summary.data.currencies.some((c) => c.currency === currency)) ? EMPTY : undefined}
           >
-            {summary.ok && <StatCards summary={summary.data} currency={currency} basis={basis} />}
+            {summary.ok && <StatCards summary={summary.data} currency={currency} />}
           </ChartCard>
         </Box>
 
@@ -191,7 +191,7 @@ export default function Analytics() {
           title="Salary trends"
           subtitle={trends.ok ? `${sub(trendCurrency)} · ${trends.data.from} – ${trends.data.to}` : undefined}
           result={trends}
-          empty={trends.ok && (noData || !trendEntry) ? EMPTY : undefined}
+          empty={trends.ok && !trendEntry ? EMPTY : undefined}
         >
           {trendEntry && (
             <>

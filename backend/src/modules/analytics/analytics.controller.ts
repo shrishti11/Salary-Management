@@ -17,7 +17,8 @@ export async function groupsHandler(request: Request, response: Response) {
   response.status(200).json(await getGroups(groupsQuerySchema.parse(request.query)));
 }
 
-export async function filterOptionsHandler(_request: Request, response: Response) {
+export async function filterOptionsHandler(request: Request, response: Response) {
+  emptyQuerySchema.parse(request.query);
   response.status(200).json(await getFilterOptions());
 }
 

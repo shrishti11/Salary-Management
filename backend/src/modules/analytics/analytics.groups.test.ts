@@ -5,6 +5,7 @@ import { app } from "../../app";
 import { forgedCookie } from "../../test/helpers";
 import { createAnalyticsFixture } from "./analytics.fixtures";
 import { getGroups } from "./analytics.service";
+import { prisma } from "../../lib/prisma";
 
 let fx: Awaited<ReturnType<typeof createAnalyticsFixture>>;
 beforeAll(async () => {
@@ -31,6 +32,35 @@ describe("GET /api/analytics/distribution", () => {
   it("uses one bucket when every value is equal", async () => {
     const res = await q("distribution", "&currency=INR");
     expect(res.body.currencies[0].buckets).toEqual([{ from: "120000.00", to: "120000.00", count: 1 }]);
+  });
+
+  it("uses one-cent buckets when the span is under 10 cents", async () => {
+    const designation = `Tiny-${fx.suffix}`;
+    const dept = await prisma.department.create({ data: { name: `Tiny ${fx.suffix}` } });
+    const created: string[] = [];
+    try {
+      for (const [i, amount] of ["100.00", "100.03"].entries()) {
+        const e = await prisma.employee.create({
+          data: {
+            employeeCode: `TN${fx.suffix.toUpperCase()}-${i}`, firstName: "Tiny", lastName: `T${i}`, email: `tiny${i}.${fx.suffix}@example.com`,
+            departmentId: dept.id, designation, country: "US", joiningDate: new Date("2015-01-01T00:00:00.000Z"),
+          },
+        });
+        created.push(e.id);
+        await prisma.salaryRecord.create({
+          data: { employeeId: e.id, currency: "USD", effectiveDate: new Date("2024-01-01T00:00:00.000Z"), reason: "r", createdById: fx.userId, components: { create: [{ type: "BASE", name: "Base salary", amount }] } },
+        });
+      }
+      const res = await fx.agent.get(`/api/analytics/distribution?designation=${designation}&currency=USD`);
+      const buckets = res.body.currencies[0].buckets;
+      expect(buckets.map((b: any) => b.count)).toEqual([1, 0, 0, 1]);
+      expect(buckets[0]).toEqual({ from: "100.00", to: "100.00", count: 1 });
+      expect(buckets[3]).toEqual({ from: "100.03", to: "100.03", count: 1 });
+    } finally {
+      await prisma.salaryRecord.deleteMany({ where: { employeeId: { in: created } } });
+      await prisma.employee.deleteMany({ where: { id: { in: created } } });
+      await prisma.department.delete({ where: { id: dept.id } });
+    }
   });
 
   it("returns one entry per currency without a currency filter, never merged", async () => {
@@ -113,6 +143,10 @@ describe("GET /api/analytics/groups", () => {
 });
 
 describe("GET /api/analytics/filters", () => {
+  it("rejects unknown query params", async () => {
+    expect((await fx.agent.get("/api/analytics/filters?x=1")).status).toBe(400);
+  });
+
   it("lists departments, countries, designations and currencies in use", async () => {
     const res = await fx.agent.get("/api/analytics/filters");
     expect(res.status).toBe(200);

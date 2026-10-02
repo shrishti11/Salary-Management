@@ -152,11 +152,11 @@ describe("analytics route page", () => {
 
     expect(await screen.findByRole("heading", { name: "Salary analytics" })).toBeInTheDocument();
     expect(screen.getByText(/Currencies are never combined; showing USD/)).toBeInTheDocument();
-    expect(screen.getByText("Compensation summary (gross, USD)")).toBeInTheDocument();
+    expect(screen.getByText("Compensation summary")).toBeInTheDocument();
     for (const label of ["Employees", "Total", "Average", "Median", "Min", "Max", "P25", "P75"]) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
-    expect(screen.getByText("5 with salary · 2 without")).toBeInTheDocument();
+    expect(screen.getByText("Across all currencies: 5 with salary · 2 without")).toBeInTheDocument();
     expect(screen.getAllByText(/gross · USD · as of 2026-10-03/).length).toBeGreaterThanOrEqual(3);
 
     expect(screen.getByRole("table", { name: "Distribution buckets in USD" })).toBeInTheDocument();
@@ -201,6 +201,15 @@ describe("analytics route page", () => {
     expect(screen.getByRole("button", { name: "Reset filters" })).toBeEnabled();
   });
 
+  it("shows trends data even when the as-of summary has no salaries", async () => {
+    backend({ summary: () => json(emptySummary) });
+    renderAt("/analytics?asOf=2000-01-01");
+
+    await screen.findByRole("heading", { name: "Salary analytics" });
+    expect(screen.getByRole("table", { name: /Monthly activity in USD/i })).toBeInTheDocument();
+    expect(screen.getAllByText("No salary data for these filters")).toHaveLength(3);
+  });
+
   it("shows an inline error only in the panel whose call failed (distribution)", async () => {
     backend({ distribution: () => json({ error: { message: "boom" } }, 500) });
     renderAt("/analytics");
@@ -208,7 +217,7 @@ describe("analytics route page", () => {
     await screen.findByRole("heading", { name: "Salary analytics" });
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.getByRole("alert")).toHaveTextContent(/could not load salary distribution/i);
-    expect(screen.getByText("Compensation summary (gross, USD)")).toBeInTheDocument();
+    expect(screen.getByText("Compensation summary")).toBeInTheDocument();
     expect(screen.getByRole("table", { name: /Groups by department/i })).toBeInTheDocument();
   });
 
