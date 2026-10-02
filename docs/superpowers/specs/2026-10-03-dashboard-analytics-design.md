@@ -115,4 +115,4 @@ What was built differs from the text above in these ways (see [the implementatio
 - Frontend fetchers omit params equal to the defaults (`status=ACTIVE`, `basis=gross`, `groupBy=department`); backend defaults are identical.
 - Distribution buckets are computed on integer cents, with `min(10, span + 1)` buckets when the span is under 10 cents.
 - Trends `avgChangePercent` also requires a positive previous value; `/api/analytics/trends` does not accept `asOf`.
-- Additional accepted limitations: charts plot display-only floats (exact values in tables), `getRecentRevisions` does follow-up queries per row, date inputs can emit partial-year dates while typing, and the seed has no revisions so Trends is empty on seed data.
+- Additional accepted limitations: charts plot display-only floats (exact values in tables), `getRecentRevisions` does follow-up queries per row, date inputs can emit partial-year dates while typing, and Trends is empty on seed data with the default 12-month window because the seeded revisions are dated 2022/2023 (a wider range shows them).
