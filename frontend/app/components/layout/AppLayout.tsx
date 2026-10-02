@@ -1,5 +1,5 @@
-import { AppBar, Box, Drawer, List, ListItemButton, ListItemText, Toolbar, Typography } from "@mui/material";
-import { Link, Outlet } from "react-router";
+import { AppBar, Box, Button, Drawer, List, ListItemButton, ListItemText, Toolbar, Typography } from "@mui/material";
+import { Form, Link, Outlet } from "react-router";
 
 const DRAWER_WIDTH = 220;
 
@@ -10,7 +10,11 @@ const NAV_ITEMS = [
   { label: "Analytics", to: "/analytics" },
 ];
 
-export default function AppLayout() {
+interface AppLayoutProps {
+  user?: { name: string; role: string };
+}
+
+export default function AppLayout({ user }: AppLayoutProps = {}) {
   return (
     <Box sx={{ display: "flex" }}>
       <AppBar position="fixed" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
@@ -18,6 +22,19 @@ export default function AppLayout() {
           <Typography variant="h6" noWrap component="div">
             Salary Management
           </Typography>
+          {user && (
+            <>
+              <Box sx={{ flexGrow: 1 }} />
+              <Typography variant="body2" sx={{ mr: 2 }}>
+                {user.name} ({user.role})
+              </Typography>
+              <Form method="post" action="/logout">
+                <Button type="submit" color="inherit">
+                  Logout
+                </Button>
+              </Form>
+            </>
+          )}
         </Toolbar>
       </AppBar>
       <Drawer

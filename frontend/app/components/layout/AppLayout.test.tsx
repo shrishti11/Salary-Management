@@ -21,4 +21,19 @@ describe("AppLayout", () => {
     expect(screen.getByRole("link", { name: "Employees" })).toBeInTheDocument();
     expect(screen.getByText("child content")).toBeInTheDocument();
   });
+
+  it("shows the user and a logout button when a user is provided", () => {
+    const router = createMemoryRouter([
+      {
+        path: "/",
+        Component: () => <AppLayout user={{ name: "Alice", role: "ADMIN" }} />,
+        children: [{ index: true, Component: () => <div>child content</div> }],
+      },
+    ]);
+
+    render(<RouterProvider router={router} />);
+
+    expect(screen.getByText(/Alice/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Logout" })).toHaveAttribute("type", "submit");
+  });
 });
