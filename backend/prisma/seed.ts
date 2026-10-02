@@ -30,6 +30,44 @@ async function main() {
 
   console.log(`Seeded admin user: ${user.email} (password: ${DEV_ADMIN_PASSWORD})`);
 
+  const departmentNames = [
+    "Engineering",
+    "Human Resources",
+    "Finance",
+    "Sales",
+    "Marketing",
+    "Operations",
+  ];
+  const departments = new Map<string, string>();
+  for (const name of departmentNames) {
+    const department = await prisma.department.upsert({
+      where: { name },
+      update: {},
+      create: { name },
+    });
+    departments.set(name, department.id);
+  }
+
+  const sampleEmployees = [
+    { employeeCode: "EMP-0001", firstName: "Asha", lastName: "Rao", email: "asha.rao@example.com", department: "Engineering", designation: "Senior Engineer", country: "IN", joiningDate: "2021-03-15" },
+    { employeeCode: "EMP-0002", firstName: "John", lastName: "Smith", email: "john.smith@example.com", department: "Finance", designation: "Financial Analyst", country: "US", joiningDate: "2020-07-01" },
+    { employeeCode: "EMP-0003", firstName: "Emma", lastName: "Wilson", email: "emma.wilson@example.com", department: "Human Resources", designation: "HR Manager", country: "GB", joiningDate: "2019-11-20" },
+    { employeeCode: "EMP-0004", firstName: "Lars", lastName: "Meyer", email: "lars.meyer@example.com", department: "Sales", designation: "Account Executive", country: "DE", joiningDate: "2022-01-10" },
+    { employeeCode: "EMP-0005", firstName: "Mei", lastName: "Tan", email: "mei.tan@example.com", department: "Operations", designation: "Operations Lead", country: "SG", joiningDate: "2018-05-02", status: "INACTIVE" as const },
+  ];
+  for (const { department, joiningDate, ...rest } of sampleEmployees) {
+    await prisma.employee.upsert({
+      where: { employeeCode: rest.employeeCode },
+      update: {},
+      create: {
+        ...rest,
+        departmentId: departments.get(department)!,
+        joiningDate: new Date(`${joiningDate}T00:00:00.000Z`),
+      },
+    });
+  }
+  console.log(`Seeded ${departmentNames.length} departments and ${sampleEmployees.length} employees`);
+
   await prisma.$disconnect();
 }
 

@@ -10,3 +10,12 @@ export function apiFetch(path: string, init: RequestInit = {}): Promise<Response
     },
   });
 }
+
+/** apiFetch for SSR loaders/actions: forwards the incoming request's cookie to the backend. */
+export function apiFetchAs(request: Request, path: string, init: RequestInit = {}): Promise<Response> {
+  const cookie = request.headers.get("cookie");
+  return apiFetch(path, {
+    ...init,
+    headers: { ...(cookie ? { cookie } : {}), ...init.headers },
+  });
+}
