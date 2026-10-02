@@ -1,21 +1,36 @@
-import { Alert, Box, Button, Card, CardContent, Link as MuiLink, Paper, Snackbar, Typography } from "@mui/material";
+import { Alert, Box, Button, Link as MuiLink, Paper, Snackbar, Typography } from "@mui/material";
 import { useEffect, useState, type ReactNode } from "react";
 import { isRouteErrorResponse, Link, useFetcher, useLoaderData, useRouteError, useSearchParams } from "react-router";
 
 import ConfirmDialog from "~/components/common/ConfirmDialog";
 import StatusChip from "~/components/common/StatusChip";
 import PageHeader from "~/components/layout/PageHeader";
+import CompensationSection from "~/components/salary/CompensationSection";
+import SalaryFormDialog from "~/components/salary/SalaryFormDialog";
 import { countryName } from "~/lib/countries";
 import { getEmployee, setEmployeeStatus } from "~/lib/employees-api";
+import { createSalary, getSalaries, toSalaryFormError, type Salary } from "~/lib/salaries-api";
+import { nextDay, toPayload, type SalaryFormValues } from "~/lib/salary-form";
 import type { Route } from "./+types/employee-profile";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  const result = await getEmployee(request, params.id);
-  if (!result.ok) throw new Response(result.message, { status: result.status });
-  return { employee: result.data.employee };
+  const [employee, salaries] = await Promise.all([getEmployee(request, params.id), getSalaries(request, params.id)]);
+  if (!employee.ok) throw new Response(employee.message, { status: employee.status });
+  return { employee: employee.data.employee, salaries };
 }
 
-export async function action({ request, params }: Route.ActionArgs): Promise<{ message: string } | { error: string }> {
+type SalaryFieldError = ReturnType<typeof toSalaryFormError>;
+
+export async function action({
+  request,
+  params,
+}: Route.ActionArgs): Promise<{ message: string } | ({ error: string } & Partial<SalaryFieldError>)> {
+  if (request.headers.get("content-type")?.includes("application/json")) {
+    const values = (await request.json()) as SalaryFormValues;
+    const result = await createSalary(request, params.id, toPayload(values));
+    return result.ok ? { message: "Salary saved" } : { error: result.message, ...toSalaryFormError(result) };
+  }
+
   const formData = await request.formData();
   const status = formData.get("status");
 
@@ -24,7 +39,9 @@ export async function action({ request, params }: Route.ActionArgs): Promise<{ m
   const result = await setEmployeeStatus(request, params.id, status);
   if (!result.ok) return { error: result.message };
 
-  return { message: status === "ACTIVE" ? "Employee activated" : "Employee deactivated" };
+  return {
+    message: status === "ACTIVE" ? "Employee activated" : "Employee deactivated",
+  };
 }
 
 export function ErrorBoundary() {
@@ -44,7 +61,10 @@ export function ErrorBoundary() {
   );
 }
 
-const NOTICES: Record<string, string> = { created: "Employee created", updated: "Employee updated" };
+const NOTICES: Record<string, string> = {
+  created: "Employee created",
+  updated: "Employee updated",
+};
 
 function Detail({ label, children }: { label: string; children: ReactNode }) {
   return (
@@ -58,11 +78,23 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 }
 
 export default function EmployeeProfile() {
-  const { employee } = useLoaderData<typeof loader>();
+  const { employee, salaries } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  const salaryFetcher = useFetcher<typeof action>();
+  // Captured when the dialog opens so a loader revalidation cannot reset in-progress edits.
+  const [dialog, setDialog] = useState<{
+    mode: "initial" | "revise";
+    current: Salary | null;
+    minDate: string;
+  } | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [salaryError, setSalaryError] = useState<SalaryFieldError | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [toast, setToast] = useState<{ severity: "success" | "error"; text: string } | null>(null);
+  const [toast, setToast] = useState<{
+    severity: "success" | "error";
+    text: string;
+  } | null>(null);
 
   const notice = NOTICES[searchParams.get("notice") ?? ""];
   useEffect(() => {
@@ -77,6 +109,41 @@ export default function EmployeeProfile() {
     if ("error" in data) setToast({ severity: "error", text: data.error });
     else setToast({ severity: "success", text: data.message });
   }, [fetcher.data]);
+
+  useEffect(() => {
+    const data = salaryFetcher.data;
+    if (!data) return;
+    if ("error" in data) {
+      setSalaryError({
+        message: data.error,
+        ...(data.field && { field: data.field }),
+      });
+    } else {
+      setToast({ severity: "success", text: data.message });
+      setSalaryError(null);
+      setDialogOpen(false);
+    }
+  }, [salaryFetcher.data]);
+
+  const openSalaryDialog = (mode: "initial" | "revise") => {
+    const overview = salaries.ok ? salaries.data : null;
+    const latest = overview?.history[0];
+    setSalaryError(null);
+    setDialog({
+      mode,
+      current: overview?.current ?? null,
+      minDate:
+        latest && nextDay(latest.effectiveDate) > employee.joiningDate
+          ? nextDay(latest.effectiveDate)
+          : employee.joiningDate,
+    });
+    setDialogOpen(true);
+  };
+
+  const closeSalaryDialog = () => {
+    setSalaryError(null);
+    setDialogOpen(false);
+  };
 
   const changeStatus = (status: "ACTIVE" | "INACTIVE") => {
     setConfirmOpen(false);
@@ -119,7 +186,13 @@ export default function EmployeeProfile() {
       />
 
       <Paper sx={{ p: 3, mb: 3 }}>
-        <Box sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" } }}>
+        <Box
+          sx={{
+            display: "grid",
+            gap: 3,
+            gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
+          }}
+        >
           <Detail label="Employee ID">{employee.employeeCode}</Detail>
           <Detail label="Status">
             <StatusChip status={employee.status} />
@@ -133,16 +206,30 @@ export default function EmployeeProfile() {
         </Box>
       </Paper>
 
-      <Card variant="outlined">
-        <CardContent>
-          <Typography variant="subtitle1" gutterBottom>
-            Compensation
-          </Typography>
-          <Typography color="text.secondary">
-            Compensation details will be available with the Salary module.
-          </Typography>
-        </CardContent>
-      </Card>
+      <CompensationSection
+        result={salaries}
+        employeeActive={employee.status === "ACTIVE"}
+        onSetSalary={() => openSalaryDialog("initial")}
+        onReviseSalary={() => openSalaryDialog("revise")}
+      />
+
+      {dialog && (
+        <SalaryFormDialog
+          open={dialogOpen}
+          mode={dialog.mode}
+          current={dialog.current}
+          minDate={dialog.minDate}
+          submitting={salaryFetcher.state !== "idle"}
+          serverError={salaryError}
+          onClose={closeSalaryDialog}
+          onSubmit={(values) =>
+            salaryFetcher.submit(values, {
+              method: "post",
+              encType: "application/json",
+            })
+          }
+        />
+      )}
 
       <ConfirmDialog
         open={confirmOpen}
