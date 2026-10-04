@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import AppLayout from "./AppLayout";
@@ -22,7 +23,7 @@ describe("AppLayout", () => {
     expect(screen.getByText("child content")).toBeInTheDocument();
   });
 
-  it("shows the user and a logout button when a user is provided", () => {
+  it("shows the user and a logout button in the user menu when a user is provided", async () => {
     const router = createMemoryRouter([
       {
         path: "/",
@@ -33,7 +34,7 @@ describe("AppLayout", () => {
 
     render(<RouterProvider router={router} />);
 
-    expect(screen.getByText(/Alice/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Alice/ }));
     expect(screen.getByRole("button", { name: "Logout" })).toHaveAttribute("type", "submit");
   });
 
@@ -55,29 +56,18 @@ describe("AppLayout", () => {
     expect(screen.getByRole("link", { name: "Dashboard" })).not.toHaveClass("Mui-selected");
   });
 
-  it("highlights Salaries (and only Salaries) on the salary directory", () => {
-    const router = createMemoryRouter(
-      [{ path: "/", Component: AppLayout, children: [{ path: "salaries", Component: () => <div>directory</div> }] }],
-      { initialEntries: ["/salaries?status=ALL"] },
-    );
-
+  it("shows exactly Dashboard, Employees, Analytics in order", () => {
+    const router = createMemoryRouter([{ path: "/", Component: AppLayout, children: [{ index: true, Component: () => <div /> }] }]);
     render(<RouterProvider router={router} />);
-
-    expect(screen.getByRole("link", { name: "Salaries" })).toHaveClass("Mui-selected");
-    expect(screen.getByRole("link", { name: "Employees" })).not.toHaveClass("Mui-selected");
+    expect(screen.getAllByRole("link").map((l) => l.textContent)).toEqual(["Dashboard", "Employees", "Analytics"]);
   });
 
-  it("links to Analytics after Salaries and highlights it on /analytics", () => {
+  it("highlights Analytics on /analytics", () => {
     const router = createMemoryRouter(
-      [{ path: "/", Component: AppLayout, children: [{ path: "analytics", Component: () => <div>analytics</div> }] }],
+      [{ path: "/", Component: AppLayout, children: [{ path: "analytics", Component: () => <div>a</div> }] }],
       { initialEntries: ["/analytics?basis=net"] },
     );
-
     render(<RouterProvider router={router} />);
-
-    const links = screen.getAllByRole("link").map((l) => l.textContent);
-    expect(links.indexOf("Analytics")).toBe(links.indexOf("Salaries") + 1);
     expect(screen.getByRole("link", { name: "Analytics" })).toHaveClass("Mui-selected");
-    expect(screen.getByRole("link", { name: "Salaries" })).not.toHaveClass("Mui-selected");
   });
 });
