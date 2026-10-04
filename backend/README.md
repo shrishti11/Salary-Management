@@ -21,6 +21,7 @@ bun run dev              # http://localhost:3001
 | `prisma:generate` | Generate the client into `generated/prisma` (gitignored; generated in the Docker build) |
 | `prisma:migrate` | `prisma migrate dev` (create/apply migrations in development) |
 | `db:deploy` | `prisma migrate deploy` (used by the Docker CMD) |
+| `db:seed:demo` | Load the 10,000-employee demo company (same code as the dashboard button; idempotent, about 8 s). Needs the dev admin from `db:seed` |
 | `db:seed` | Upsert the dev admin user, 6 departments and 5 sample employees `EMP-0001`..`EMP-0005`, and create salary history for `EMP-0001`..`EMP-0003` (idempotent; an employee that already has salary records is skipped) |
 
 ## Environment variables
@@ -47,7 +48,7 @@ Employees and departments require a session with role `ADMIN` or `HR_MANAGER` (4
 
 - `GET /api/departments` -> `{ departments: [{id, name}] }` sorted by name
 - `GET /api/employees` -> `{ data, pagination: {page, pageSize, total, totalPages} }`. Query: `page` (default 1), `pageSize` (1-100, default 20), `q` (whitespace-split tokens, each must match employee code, first/last name or email, case-insensitive), `departmentId`, `country` (ISO alpha-2), `status` (`ACTIVE`|`INACTIVE`; omitted = all), `sortBy` (`employeeCode`|`name`|`department`|`designation`|`country`|`joiningDate`|`status`, default `employeeCode`), `sortOrder` (`asc`|`desc`). Unknown params -> 400
-- `POST /api/employees` -> 201 `{ employee }`; 400 `VALIDATION_ERROR` / `INVALID_DEPARTMENT`; 409 `DUPLICATE_EMPLOYEE_CODE` / `DUPLICATE_EMAIL`
+- `POST /api/employees` -> 201 `{ employee }`; the Employee ID (`EMP-00001`, ...) is generated from the `employee_code_seq` database sequence and any client-supplied `employeeCode` is ignored; 400 `VALIDATION_ERROR` / `INVALID_DEPARTMENT`; 409 `DUPLICATE_EMAIL`
 - `GET /api/employees/:id` -> `{ employee }`; 404 `EMPLOYEE_NOT_FOUND`
 - `PATCH /api/employees/:id` partial update; `employeeCode` and `status` are rejected (400); 404/409 as above
 - `PATCH /api/employees/:id/status` `{status}` -> `{ employee }`; there is no DELETE route
@@ -64,6 +65,13 @@ Salaries use the same roles and live under `/api/employees/:id/salaries`. Record
 
 - Query: `page` (default 1), `pageSize` (1-100, default 20), `q` (name, employee ID or email), `departmentId`, `country`, `status` (`ACTIVE` default, `INACTIVE`, `ALL`), `salary` (`with` / `without` a current salary), `sortBy` (`name` default, `employeeCode`, `department`, `country`, `joiningDate`, `effectiveDate`), `sortOrder` (`asc` default, `desc`). Unknown keys and invalid values return 400 `VALIDATION_ERROR`.
 - Response: `{ data: [{ employee: { id, employeeCode, firstName, lastName, email, department, country, designation, joiningDate, status }, current: { id, currency, effectiveDate, gross, net, deductions, reason } | null, hasScheduled }], pagination: { page, pageSize, total, totalPages } }`. `joiningDate` and `effectiveDate` are `YYYY-MM-DD`. Amounts are decimal strings in the record's own currency; there is no amount sorting because currencies differ.
+
+`GET /api/salaries/export` (same roles and query as the list; `page`/`pageSize` are ignored) returns the matching rows as a CSV download (UTF-8 BOM, spreadsheet-formula-safe cells, up to 50,000 rows).
+
+### Demo data
+
+- `GET /api/demo-data` (ADMIN, HR_MANAGER) -> `{ seeded, count, target }` (target 10,000; demo rows are the employees with an `@demo.acme.example` email).
+- `POST /api/demo-data/seed` (ADMIN) -> 201 `{ created: true, count, target, durationMs }`, or 200 `{ created: false, ... }` when the target is already reached. One transaction guarded by a Postgres advisory lock, so double clicks cannot seed twice. It tops up to exactly 10,000 and never adds more.
 
 ### Dashboard and analytics
 
