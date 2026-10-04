@@ -41,8 +41,6 @@ Create:
 - `frontend/app/components/employees/EmployeeFormDialog.tsx` — replaces `EmployeeForm.tsx` usage.
 - `frontend/app/components/employees/EmployeeDirectoryTable.tsx` — merged table with row menu.
 - `frontend/app/components/employees/EmployeeFilterBar.tsx` — search, status toggle, filters popover.
-- `frontend/app/components/employees/EmployeeActionsDialogs.tsx` — shared edit/salary/deactivate dialog host used by the list and profile.
-- `frontend/app/lib/employee-directory.ts` — thin re-export/rename layer over `salary-directory-api.ts` (see Task 2).
 
 Modify: `root.tsx`, `routes.ts`, `components/layout/AppLayout.tsx`, `components/layout/PageHeader.tsx`, `routes/employees.tsx`, `routes/employee-profile.tsx`, `routes/dashboard.tsx`, `routes/analytics.tsx`, `routes/login.tsx`, `components/salary/SalaryFormDialog.tsx`, `components/salary/CompensationSection.tsx`, plus tests beside each.
 
@@ -568,7 +566,7 @@ git commit -m "feat(frontend): add employee form dialog"
 ### Task 6: Employees page (merged directory) with add dialog and redirects
 
 **Files:**
-- Create: `components/employees/EmployeeFilterBar.tsx`, `EmployeeDirectoryTable.tsx`, `EmployeeActionsDialogs.tsx` + tests (all under `frontend/app/`)
+- Create: `components/employees/EmployeeFilterBar.tsx`, `EmployeeDirectoryTable.tsx` + tests (all under `frontend/app/`)
 - Modify: `routes/employees.tsx`, `routes/employees.test.tsx`, `routes.ts`, `routes.test.ts`
 - Create: `routes/salaries-redirect.tsx` (loader-only), `routes/employee-new-redirect.tsx`, `routes/employee-edit-redirect.tsx`
 - Delete: `routes/salaries.tsx`, `salaries.test.tsx`, `employee-new.tsx`, `employee-new.test.tsx`, `employee-edit.tsx`, `employee-edit.test.tsx`, `components/employees/EmployeeTable.tsx`(+test), `EmployeeFilters.tsx`(+test), `components/salary/SalaryDirectoryTable.tsx`(+test), `SalaryDirectoryFilters.tsx`(+test) — after moving any still-useful assertions into new tests.
@@ -670,15 +668,7 @@ export default function EmployeeEditRedirect() { return null; }
 
 `EmployeeDirectoryTable.tsx`: columns per spec; sortable headers (`TableSortLabel`) for name, department, country, joiningDate; salary column header is not sortable. Name cell: `MuiLink component={Link} to={/employees/${id}}` plus caption `email · employeeCode`. Salary cell: `current ? <Money amount={current.gross} currency={current.currency}/> : <Chip size="small" label="No salary" variant="outlined"/>`, plus `hasScheduled && <Chip size="small" color="warning" label="Revision scheduled"/>`. Last cell `IconButton aria-label="Actions for {name}"` opening a `Menu` with items: "View" (Link), "Edit" (`onAction("edit")`), and if `status==="ACTIVE"`: "Set salary" (when `current===null`) or "Revise salary" (Link to `?salary=...`), then "Deactivate"; if INACTIVE: "Reactivate". Row `onClick` navigates to the profile, but clicks inside the menu cell must `stopPropagation`.
 
-`EmployeeActionsDialogs.tsx`: hosts `EmployeeFormDialog` (edit) and `ConfirmDialog` (deactivate) so both the list and profile reuse them:
-```ts
-interface EmployeeActionsDialogsProps {
-  edit: { employee: Employee; serverError?: FormError | null; submitting: boolean; onSubmit(values: EmployeeFormValues): void; onClose(): void } | null;
-  deactivate: { name: string; submitting: boolean; onConfirm(): void; onClose(): void } | null;
-  departments: Department[];
-}
-```
-The edit data on the list must be a full `Employee`; since the directory row lacks phone, **the list's Edit item links to `/employees/:id?edit=1`** (profile owns edit, which has the full employee). Therefore `EmployeeActionsDialogs` is only used by the profile and the list's deactivate; if the list only needs deactivate, inline `ConfirmDialog` in `employees.tsx` and **drop `EmployeeActionsDialogs.tsx` from this task** (do not create it). The list's kebab: View, Edit (link `?edit=1`), Set/Revise salary (link `?salary=…`), Deactivate/Reactivate (action, confirm for deactivate).
+Deviation from spec (to be confirmed by the user): the list's kebab Edit and Set/Revise salary items link to the profile with `?edit=1` / `?salary=...`, which opens the dialog there. This avoids loading full employee and salary history for every row. Add employee and Deactivate/Reactivate stay in place on the list.
 
 - [ ] **Step 4: Run** `cd frontend && npm test && npm run typecheck` — Expected: PASS. Delete the retired files listed above before this step and make sure nothing imports them (`grep -rn "EmployeeTable\|EmployeeFilters\|SalaryDirectory" frontend/app` returns only the new `salary-directory-api` lib).
 
