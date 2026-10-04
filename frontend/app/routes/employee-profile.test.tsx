@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ToastProvider } from "~/components/common/ToastProvider";
@@ -410,6 +410,25 @@ describe("employee profile salary dialog from the URL", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("opens only the edit dialog when both ?edit=1 and ?salary= are present", async () => {
+    backend(populated);
+    const router = renderAt("/employees/e1?edit=1&salary=revise");
+
+    expect(await screen.findByRole("dialog", { name: "Edit employee" })).toBeInTheDocument();
+    await waitFor(() => expect(search(router).has("salary")).toBe(false));
+    expect(search(router).get("edit")).toBe("1");
+    expect(screen.getAllByRole("dialog")).toHaveLength(1);
+  });
+
+  it("strips an unrecognised ?salary value without opening anything", async () => {
+    backend(populated);
+    const router = renderAt("/employees/e1?salary=bogus");
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Asha Rao" })).toBeInTheDocument();
+    await waitFor(() => expect(search(router).has("salary")).toBe(false));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("ignores ?salary for an inactive employee and offers no salary buttons", async () => {
     const user = userEvent.setup();
     backend(populated, inactive);
@@ -812,5 +831,114 @@ describe("employee profile action", () => {
     expect(await call("null")).toEqual(unsupported);
     expect(await call({ intent: "explode" })).toEqual(unsupported);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("employee profile inside a parent route with a loader", () => {
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  /** Mirrors routes/authenticated.tsx: a parent layout whose loader reruns on every navigation. */
+  function renderNested(url: string) {
+    const router = createMemoryRouter(
+      [
+        {
+          path: "/",
+          loader: async () => ({ user: "hr" }),
+          Component: () => (
+            <ToastProvider>
+              <Outlet />
+            </ToastProvider>
+          ),
+          children: [
+            {
+              path: "employees/:id",
+              loader: (a) => loader({ ...a, context: {} } as Parameters<typeof loader>[0]),
+              action: (a) => action({ ...a, context: {} } as Parameters<typeof action>[0]),
+              shouldRevalidate,
+              Component: EmployeeProfile,
+              ErrorBoundary,
+            },
+          ],
+        },
+      ],
+      { initialEntries: [url] },
+    );
+    render(<RouterProvider router={router} />);
+    return router;
+  }
+
+  /** Profile GETs are slow (after the first load) so the parent loader always finishes first. */
+  function slowBackend(employeeFor: () => unknown, overviewFor: () => unknown, onWrite: () => Response) {
+    let loads = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/api/departments") return json(departments);
+      if (init?.method) return onWrite();
+      if (url.pathname === "/api/employees/e1") {
+        loads += 1;
+        if (loads > 1) await delay(80);
+        return json({ employee: employeeFor() });
+      }
+      if (loads > 1) await delay(80);
+      return json(overviewFor());
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  it("shows the updated name after saving the edit dialog", async () => {
+    const user = userEvent.setup();
+    let updated = false;
+    slowBackend(
+      () => (updated ? { ...employee, firstName: "Ashu" } : employee),
+      () => emptyOverview,
+      () => {
+        updated = true;
+        return json({ employee: { ...employee, firstName: "Ashu" } });
+      },
+    );
+    const router = renderNested("/employees/e1?edit=1");
+
+    const dialog = await screen.findByRole("dialog", { name: "Edit employee" });
+    const first = within(dialog).getByLabelText("First name");
+    await user.clear(first);
+    await user.type(first, "Ashu");
+    await user.click(within(dialog).getByRole("button", { name: "Save changes" }));
+
+    expect(await screen.findByText("Employee updated")).toBeInTheDocument();
+    await waitFor(() => expect(search(router).has("edit")).toBe(false));
+    expect(await screen.findByRole("heading", { level: 1, name: "Ashu Rao" }, { timeout: 2000 })).toBeInTheDocument();
+    await delay(200);
+    expect(screen.getByRole("heading", { level: 1, name: "Ashu Rao" })).toBeInTheDocument();
+  });
+
+  it("shows the new history row after saving from ?salary=revise", async () => {
+    const user = userEvent.setup();
+    let saved = false;
+    slowBackend(
+      () => employee,
+      () => (saved ? { current: salary(), scheduled: revised, history: [revised, salary()] } : populated),
+      () => {
+        saved = true;
+        return json({ salary: revised }, 201);
+      },
+    );
+    const router = renderNested("/employees/e1?salary=revise");
+
+    const dialog = await screen.findByRole("dialog", { name: "Revise salary" });
+    await user.type(within(dialog).getByLabelText("Effective date"), "2026-12-01");
+    await user.type(within(dialog).getByLabelText("Reason"), "Annual review");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    const confirm = await screen.findByRole("dialog", { name: "Save salary revision?" });
+    await user.click(within(confirm).getByRole("button", { name: "Save revision" }));
+
+    expect(await screen.findByText("Salary saved")).toBeInTheDocument();
+    await waitFor(() => expect(search(router).has("salary")).toBe(false));
+    await waitFor(
+      () => expect(within(screen.getByRole("table", { name: "Salary history" })).getAllByRole("row")).toHaveLength(3),
+      { timeout: 2000 },
+    );
+    await delay(200);
+    expect(within(screen.getByRole("table", { name: "Salary history" })).getAllByRole("row")).toHaveLength(3);
   });
 });

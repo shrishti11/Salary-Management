@@ -160,6 +160,22 @@ function DetailCard({ title, children }: { title: string; children: ReactNode })
 
 type ProfileTab = "overview" | "compensation";
 
+/**
+ * Runs `handle` once per fetcher result, and only after the fetcher is idle. While the fetcher is
+ * still "loading" (revalidating after its action), a URL change from the handler would abort that
+ * revalidation and leave the page showing stale loader data.
+ */
+function useFetcherResult<T>(fetcher: { state: string; data: T | undefined }, handle: (data: T) => void) {
+  const handled = useRef<T | undefined>(undefined);
+  useEffect(() => {
+    const data = fetcher.data;
+    if (fetcher.state !== "idle" || data === undefined || handled.current === data) return;
+    handled.current = data;
+    handle(data);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fetcher.state, fetcher.data]);
+}
+
 export default function EmployeeProfile() {
   const { employee, salaries, departments } = useLoaderData<typeof loader>();
   const toast = useToast();
@@ -217,17 +233,15 @@ export default function EmployeeProfile() {
     removeParam("edit");
   };
 
-  useEffect(() => {
-    const data = editFetcher.data;
-    if (!data || data.intent !== "update") return;
+  useFetcherResult(editFetcher, (data) => {
+    if (data.intent !== "update") return;
     if ("error" in data) {
       setEditError(data.error);
     } else {
       closeEdit();
       toast.success(data.message);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editFetcher.data]);
+  });
 
   // --- Salary dialog ---
   const openSalaryDialog = () => {
@@ -251,32 +265,32 @@ export default function EmployeeProfile() {
   };
 
   // `?salary=initial|revise` (from the directory) opens the dialog once; closing removes the param.
+  // Ignored (and stripped) for unrecognised values, inactive employees, unloaded salaries, or when
+  // the edit dialog is also requested: edit wins so two dialogs never open at once.
   const salaryParam = searchParams.get("salary");
-  const salaryRequested = salaryParam === "initial" || salaryParam === "revise";
   const handledSalaryParam = useRef(false);
   useEffect(() => {
-    if (!salaryRequested) {
+    if (salaryParam === null) {
       handledSalaryParam.current = false;
       return;
     }
     if (handledSalaryParam.current) return;
     handledSalaryParam.current = true;
-    if (canChangeSalary) openSalaryDialog();
+    const valid = salaryParam === "initial" || salaryParam === "revise";
+    if (valid && canChangeSalary && !editOpen) openSalaryDialog();
     else removeParam("salary");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [salaryRequested, canChangeSalary]);
+  }, [salaryParam, canChangeSalary, editOpen]);
 
-  useEffect(() => {
-    const data = salaryFetcher.data;
-    if (!data || data.intent !== "salary") return;
+  useFetcherResult(salaryFetcher, (data) => {
+    if (data.intent !== "salary") return;
     if ("error" in data) {
       setSalaryError(data.error);
     } else {
       toast.success(data.message);
       closeSalaryDialog();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [salaryFetcher.data]);
+  });
 
   // --- Status ---
   const changeStatus = (status: "ACTIVE" | "INACTIVE") => {
@@ -285,14 +299,11 @@ export default function EmployeeProfile() {
     statusFetcher.submit({ intent: "status", status }, { method: "post", encType: "application/json" });
   };
 
-  useEffect(() => {
-    const data = statusFetcher.data;
-    if (!data) return;
+  useFetcherResult(statusFetcher, (data) => {
     if (data.intent === "update" || data.intent === "salary") return;
     if ("error" in data) toast.error(data.error);
     else toast.success(data.message);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFetcher.data]);
+  });
 
   const savingStatus = statusFetcher.state !== "idle";
   const fullName = `${employee.firstName} ${employee.lastName}`;
