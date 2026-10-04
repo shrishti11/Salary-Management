@@ -1,15 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  DEFAULT_LIST_PARAMS,
-  createEmployee,
-  getEmployee,
-  listEmployees,
-  parseListParams,
-  setEmployeeStatus,
-  toFormError,
-  toSearchParams,
-} from "./employees-api";
+import { createEmployee, getEmployee, listDepartments, setEmployeeStatus, toFormError } from "./employees-api";
 
 const req = () => new Request("http://localhost:3000/employees", { headers: { cookie: "session=abc" } });
 const json = (body: unknown, status = 200) =>
@@ -17,45 +8,15 @@ const json = (body: unknown, status = 200) =>
 
 afterEach(() => vi.unstubAllGlobals());
 
-describe("parseListParams", () => {
-  it("returns defaults for an empty query", () => {
-    expect(parseListParams(new URLSearchParams())).toEqual(DEFAULT_LIST_PARAMS);
-  });
-
-  it("parses valid values", () => {
-    const params = parseListParams(
-      new URLSearchParams("page=3&pageSize=50&q=%20asha%20&country=IN&status=INACTIVE&sortBy=name&sortOrder=desc"),
-    );
-    expect(params).toMatchObject({ page: 3, pageSize: 50, q: "asha", country: "IN", status: "INACTIVE", sortBy: "name", sortOrder: "desc" });
-  });
-
-  it("falls back to defaults for tampered values", () => {
-    const params = parseListParams(
-      new URLSearchParams("page=-4&pageSize=9999&country=ZZ&status=FIRED&sortBy=passwordHash&sortOrder=up&departmentId=nope"),
-    );
-    expect(params).toEqual(DEFAULT_LIST_PARAMS);
-    expect(parseListParams(new URLSearchParams("page=abc")).page).toBe(1);
-  });
-});
-
-describe("toSearchParams", () => {
-  it("omits empty values and defaults", () => {
-    expect(toSearchParams(DEFAULT_LIST_PARAMS).toString()).toBe("");
-    expect(toSearchParams({ ...DEFAULT_LIST_PARAMS, q: "asha", page: 2, sortBy: "name" }).toString()).toBe(
-      "page=2&q=asha&sortBy=name",
-    );
-  });
-});
-
 describe("api calls", () => {
-  it("lists employees with the query string and forwarded cookie", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(json({ data: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } }));
+  it("forwards the session cookie to the backend", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(json({ departments: [] }));
     vi.stubGlobal("fetch", fetchMock);
 
-    const result = await listEmployees(req(), { ...DEFAULT_LIST_PARAMS, q: "asha" });
+    const result = await listDepartments(req());
 
     expect(result.ok).toBe(true);
-    expect(String(fetchMock.mock.calls[0]![0])).toMatch(/\/api\/employees\?q=asha$/);
+    expect(String(fetchMock.mock.calls[0]![0])).toMatch(/\/api\/departments$/);
     expect(((fetchMock.mock.calls[0]![1] as RequestInit).headers as Record<string, string>).cookie).toBe("session=abc");
   });
 

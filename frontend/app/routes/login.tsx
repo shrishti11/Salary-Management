@@ -57,10 +57,10 @@ export default function Login({ actionData }: Pick<Route.ComponentProps, "action
   };
 
   return (
-    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh" }}>
-      <Paper sx={{ p: 4, width: 360 }} component="form" method="post" onSubmit={handleSubmit(onSubmit)}>
+    <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100vh", bgcolor: "background.default", px: 2 }}>
+      <Paper sx={{ p: 4, width: "100%", maxWidth: 400 }} component="form" method="post" onSubmit={handleSubmit(onSubmit)}>
         <Typography variant="h5" component="h1" gutterBottom>
-          Sign in
+          Salary Management
         </Typography>
 
         {actionData?.error && (

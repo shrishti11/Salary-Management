@@ -2,7 +2,6 @@ import { render, screen, within } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { AUTHENTICATED_ROUTE_ID } from "~/lib/route-ids";
 import Dashboard, { ErrorBoundary, loader } from "./dashboard";
 
 const json = (body: unknown, status = 200) =>
@@ -47,17 +46,10 @@ function renderDashboard(respond: () => Response) {
   const router = createMemoryRouter(
     [
       {
-        id: AUTHENTICATED_ROUTE_ID,
-        path: "/",
-        loader: () => ({ user: { id: "1", email: "a@b.com", name: "Alice", role: "ADMIN" } }),
-        children: [
-          {
-            path: "dashboard",
-            loader: ({ request }) => loader({ request, params: {}, context: {} } as Parameters<typeof loader>[0]),
-            Component: Dashboard,
-            ErrorBoundary,
-          },
-        ],
+        path: "dashboard",
+        loader: ({ request }) => loader({ request, params: {}, context: {} } as Parameters<typeof loader>[0]),
+        Component: Dashboard,
+        ErrorBoundary,
       },
       { path: "/login", Component: () => <div>login page</div> },
     ],
@@ -69,25 +61,15 @@ function renderDashboard(respond: () => Response) {
 afterEach(() => vi.unstubAllGlobals());
 
 describe("Dashboard route", () => {
-  it("shows the signed-in user from the parent loader", async () => {
+  it("shows the as-of date and no signed-in paragraph", async () => {
     renderDashboard(() => json(dashboard));
-    expect(await screen.findByText("Signed in as Alice (ADMIN).")).toBeInTheDocument();
+    expect(await screen.findByText("As of Oct 3, 2026")).toBeInTheDocument();
+    expect(screen.queryByText(/Signed in as/)).not.toBeInTheDocument();
   });
 
-  it("fails loudly when the authenticated parent route is missing", async () => {
-    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const router = createMemoryRouter([{ path: "/", Component: Dashboard }]);
-    render(<RouterProvider router={router} />);
-    expect(
-      await screen.findByRole("heading", { name: "Dashboard must render inside the authenticated layout route" }),
-    ).toBeInTheDocument();
-    spy.mockRestore();
-  });
-
-  it("(a) shows the metric cards", async () => {
+  it("shows four metric tiles and no total employees tile", async () => {
     renderDashboard(() => json(dashboard));
     for (const [label, value] of [
-      ["Total employees", "8"],
       ["Active employees", "7"],
       ["Departments", "2"],
       ["Countries", "3"],
@@ -96,68 +78,54 @@ describe("Dashboard route", () => {
       const card = (await screen.findByText(label)).parentElement as HTMLElement;
       expect(within(card).getByText(value)).toBeInTheDocument();
     }
+    expect(screen.queryByText("Total employees")).not.toBeInTheDocument();
   });
 
-  it("(b) shows one salary block per currency and never a combined total", async () => {
+  it("links the attention item to employees without salary", async () => {
     renderDashboard(() => json(dashboard));
-    const overview = (await screen.findByRole("heading", { name: "Salary overview" })).closest("div") as HTMLElement;
-    const card = overview.parentElement as HTMLElement;
-    expect(within(card).getByText("USD")).toBeInTheDocument();
-    expect(within(card).getByText("INR")).toBeInTheDocument();
-    expect(within(card).getByText("Total $11,200.00")).toBeInTheDocument();
-    expect(within(card).getByText("Average $2,800.00")).toBeInTheDocument();
-    expect(within(card).getByText("Median $2,750.00")).toBeInTheDocument();
-    expect(within(card).getByText("Total ₹120,000.00")).toBeInTheDocument();
-    expect(within(card).getByText("Average ₹120,000.00")).toBeInTheDocument();
-    expect(within(card).getByText("Median ₹120,000.00")).toBeInTheDocument();
-    expect(screen.queryByText(/131200/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/131,200/)).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Attention" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "2 employees have no salary" })).toHaveAttribute("href", "/employees?salary=without");
   });
 
-  it("(c) lists departments with each currency line", async () => {
-    renderDashboard(() => json(dashboard));
-    const table = await screen.findByRole("table", { name: "Departments" });
-    const eng = within(table).getByRole("row", { name: /Engineering/ });
-    expect(within(eng).getByText(/\$4,400\.00/)).toBeInTheDocument();
-    expect(within(eng).getByText(/₹120,000\.00/)).toBeInTheDocument();
-    expect(within(table).getByRole("row", { name: /Design/ })).toBeInTheDocument();
+  it("uses the singular when one employee has no salary", async () => {
+    renderDashboard(() => json({ ...dashboard, metrics: { ...dashboard.metrics, withoutSalary: 1 } }));
+    expect(await screen.findByRole("link", { name: "1 employee has no salary" })).toBeInTheDocument();
   });
 
-  it("(d) resolves country names and falls back to the code", async () => {
-    renderDashboard(() => json(dashboard));
-    const table = await screen.findByRole("table", { name: "Countries" });
-    expect(within(table).getByText("United States")).toBeInTheDocument();
-    expect(within(table).getByText("ZZ")).toBeInTheDocument();
+  it("says nothing needs attention when everyone has a salary", async () => {
+    renderDashboard(() => json(empty));
+    expect(await screen.findByText("Nothing needs your attention.")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /no salary/ })).not.toBeInTheDocument();
   });
 
-  it("(e) renders recent employees and revisions", async () => {
+  it("no longer shows salary or breakdown sections", async () => {
     renderDashboard(() => json(dashboard));
-    expect(await screen.findByText(/EMP-0009/)).toBeInTheDocument();
+    await screen.findByRole("heading", { name: "Attention" });
+    for (const name of ["Salary overview", "By department", "By country"]) {
+      expect(screen.queryByRole("heading", { name })).not.toBeInTheDocument();
+    }
+    expect(screen.queryByRole("link", { name: "Open salary analytics" })).not.toBeInTheDocument();
+  });
+
+  it("renders recent hires and salary changes with employee links", async () => {
+    renderDashboard(() => json(dashboard));
+    expect(await screen.findByRole("heading", { name: "Recent hires" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Recent salary changes" })).toBeInTheDocument();
+    expect(screen.getByText(/EMP-0009/)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Asha Rao" })[0]).toHaveAttribute("href", "/employees/e1");
     expect(screen.getByText("+30.00%")).toBeInTheDocument();
     expect(screen.getByText(/Annual review/)).toBeInTheDocument();
     expect(screen.getByText(/Hannah HR/)).toBeInTheDocument();
+    expect(screen.getByText(/joined Sep 1, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/effective Oct 1, 2026/)).toBeInTheDocument();
   });
 
-  it("pluralises the employee count", async () => {
-    renderDashboard(() => json(dashboard));
-    expect(await screen.findByText("1 employee")).toBeInTheDocument();
-    expect(screen.getByText("4 employees")).toBeInTheDocument();
-  });
-
-  it("(f) handles empty data", async () => {
+  it("handles empty recent activity", async () => {
     renderDashboard(() => json(empty));
-    expect(await screen.findByText("No salary data yet")).toBeInTheDocument();
-    expect(screen.getAllByText("No recent activity")).toHaveLength(2);
+    expect(await screen.findAllByText("No recent activity")).toHaveLength(2);
   });
 
-  it("shows empty messages for departments and countries", async () => {
-    renderDashboard(() => json(empty));
-    expect(await screen.findByText("No departments yet")).toBeInTheDocument();
-    expect(screen.getByText("No countries yet")).toBeInTheDocument();
-  });
-
-  it("(g) shows an error with retry when the API fails", async () => {
+  it("shows an error with retry when the API fails", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     renderDashboard(() => json({ error: { message: "boom" } }, 500));
     expect(await screen.findByText("Could not load the dashboard. Please try again.")).toBeInTheDocument();
@@ -165,13 +133,8 @@ describe("Dashboard route", () => {
     spy.mockRestore();
   });
 
-  it("(h) redirects to /login on 401", async () => {
+  it("redirects to /login on 401", async () => {
     renderDashboard(() => json({ error: { message: "Unauthorized" } }, 401));
     expect(await screen.findByText("login page")).toBeInTheDocument();
-  });
-
-  it("(i) links to salary analytics", async () => {
-    renderDashboard(() => json(dashboard));
-    expect(await screen.findByRole("link", { name: "Open salary analytics" })).toHaveAttribute("href", "/analytics");
   });
 });

@@ -38,10 +38,10 @@ Note: in compose `NODE_ENV=production`, so the session cookie is `Secure`. Brows
 - Auth: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
 - Employees (ADMIN and HR_MANAGER): `GET/POST /api/employees`, `GET/PATCH /api/employees/:id`, `PATCH /api/employees/:id/status`; `GET /api/departments`
 - Salaries (ADMIN and HR_MANAGER): `GET/POST /api/employees/:id/salaries`, `GET /api/employees/:id/salaries/:salaryId` (append-only; a revision never overwrites earlier records)
-- Salary directory (ADMIN and HR_MANAGER): `GET /api/salaries` (current salary per employee; search, filters, sorting, pagination)
+- Current salaries (ADMIN and HR_MANAGER): `GET /api/salaries` (current salary per employee, with designation and joining date; search, filters, sorting including joining date, pagination); it backs the `/employees` list
 - Dashboard (ADMIN and HR_MANAGER): `GET /api/dashboard` (active employees, gross, as of today)
 - Analytics (ADMIN and HR_MANAGER): `GET /api/analytics/summary`, `/distribution`, `/groups`, `/trends`, `/filters` (filters: department, country, designation, status, currency, basis, as-of date, trend range; all money per currency, never combined)
-- UI routes: `/dashboard` (overview), `/analytics` (filterable analytics), `/salaries` (salary directory), `/employees` (directory), `/employees/new`, `/employees/:id` (profile with compensation section, activate/deactivate), `/employees/:id/edit`
+- UI routes: `/dashboard` (4 stat tiles, attention items, recent activity), `/employees` (employee and current-salary list; add employee, set/revise salary, edit and deactivate from the row menu), `/employees/:id` (profile with Overview and Compensation tabs and edit/salary dialogs), `/analytics` (filterable analytics). `/salaries`, `/employees/new` and `/employees/:id/edit` only redirect to the routes above.
 
 Details: [`backend/README.md`](backend/README.md), [`frontend/README.md`](frontend/README.md), [`docs/implementation/`](docs/implementation/).
 

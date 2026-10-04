@@ -36,6 +36,18 @@ describe("SalaryFormDialog", () => {
     );
   });
 
+  it("groups fields under Amount and When and why", () => {
+    setup();
+    const amount = screen.getByRole("region", { name: "Amount" });
+    expect(within(amount).getByLabelText("Currency")).toBeInTheDocument();
+    expect(within(amount).getByLabelText("Base salary")).toBeInTheDocument();
+    expect(within(amount).getByRole("button", { name: "Add component" })).toBeInTheDocument();
+    const when = screen.getByRole("region", { name: "When and why" });
+    expect(within(when).getByLabelText("Effective date")).toBeInTheDocument();
+    expect(within(when).getByLabelText("Reason")).toBeInTheDocument();
+    expect(screen.getByTestId("salary-totals")).toBeInTheDocument();
+  });
+
   it("initial mode: validates required fields", async () => {
     const { onSubmit } = setup();
     await userEvent.selectOptions(screen.getByLabelText("Currency"), "");
@@ -117,7 +129,7 @@ describe("SalaryFormDialog", () => {
         name: "Save salary revision?",
       });
       expect(confirm).toHaveTextContent("$4,800.00");
-      expect(confirm).toHaveTextContent("2026-03-01");
+      expect(confirm).toHaveTextContent("Mar 1, 2026");
       expect(onSubmit).not.toHaveBeenCalled();
 
       await userEvent.click(
@@ -138,6 +150,13 @@ describe("SalaryFormDialog", () => {
       await userEvent.click(screen.getByRole("button", { name: "Save" }));
       const confirm = await screen.findByRole("dialog", { name: "Save salary revision?" });
       expect(confirm).toHaveTextContent("Currency changes from USD to EUR; amounts are not converted.");
+    });
+
+    it("shows a live currency-change note in the form when the currency differs", async () => {
+      setup(props);
+      expect(screen.queryByText(/amounts are not converted/)).not.toBeInTheDocument();
+      await userEvent.selectOptions(screen.getByLabelText("Currency"), "EUR");
+      expect(screen.getByText("Currency changes from USD to EUR; amounts are not converted.")).toBeInTheDocument();
     });
 
     it("shows no currency warning when the currency is unchanged", async () => {

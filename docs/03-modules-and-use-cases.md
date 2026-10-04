@@ -183,6 +183,8 @@ The initial system manages compensation records. It does not perform payroll pro
 
 Provide a summary of the organization's workforce and compensation information.
 
+> Implementation note (UI/UX redesign): the dashboard page now shows four stat tiles, an Attention card and recent activity only. Department and country comparisons (UC-DASH-02/03) and the salary overview are available on the Analytics page, not the dashboard.
+
 ### Use Cases
 
 #### UC-DASH-01: View Organization Overview

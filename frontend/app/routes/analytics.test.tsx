@@ -98,7 +98,7 @@ describe("analytics route loader", () => {
   it("fetches summary and filters first, then the rest with the most populous currency", async () => {
     const seen = backend();
     renderAt("/analytics");
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
 
     const order = seen.map((u) => u.pathname.split("/").pop());
     expect(new Set(order.slice(0, 2))).toEqual(new Set(["summary", "filters"]));
@@ -116,7 +116,7 @@ describe("analytics route loader", () => {
   it("sends non-default status and basis", async () => {
     const seen = backend();
     renderAt("/analytics?status=ALL&basis=net");
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
     for (const name of ["summary", "distribution", "groups", "trends"]) {
       const p = find(seen, name).searchParams;
       expect(p.get("status")).toBe("ALL");
@@ -127,7 +127,7 @@ describe("analytics route loader", () => {
   it("passes each endpoint only the params it accepts", async () => {
     const seen = backend();
     renderAt("/analytics?currency=INR&country=US&basis=net&groupBy=country&asOf=2025-01-31&from=2024-01-01&to=2024-12-31");
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
 
     const keys = (name: string) => [...find(seen, name).searchParams.keys()].sort();
     expect(keys("summary")).toEqual(["asOf", "basis", "country", "currency"]);
@@ -150,7 +150,7 @@ describe("analytics route page", () => {
     backend();
     renderAt("/analytics");
 
-    expect(await screen.findByRole("heading", { name: "Salary analytics" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Analytics" })).toBeInTheDocument();
     expect(screen.getByText(/Currencies are never combined; showing USD/)).toBeInTheDocument();
     expect(screen.getByText("Compensation summary")).toBeInTheDocument();
     for (const label of ["Employees", "Total", "Average", "Median", "Min", "Max", "P25", "P75"]) {
@@ -175,7 +175,7 @@ describe("analytics route page", () => {
   it("writes filter changes to the URL without resetting others; Reset keeps basis and groupBy", async () => {
     backend();
     const router = renderAt("/analytics?basis=net&country=US");
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
 
     await userEvent.selectOptions(screen.getByLabelText("Status"), "ALL");
     await waitFor(() => expect(router.state.location.search).toContain("status=ALL"));
@@ -196,7 +196,7 @@ describe("analytics route page", () => {
     backend({ summary: () => json(emptySummary), distribution: () => json({ ...distribution, currencies: [] }), groups: () => json({ ...groups, groups: [] }), trends: () => json({ ...trends, currencies: [] }) });
     renderAt("/analytics?country=US");
 
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
     expect(screen.getAllByText("No salary data for these filters")).toHaveLength(4);
     expect(screen.getByRole("button", { name: "Reset filters" })).toBeEnabled();
   });
@@ -205,7 +205,7 @@ describe("analytics route page", () => {
     backend({ summary: () => json(emptySummary) });
     renderAt("/analytics?asOf=2000-01-01");
 
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
     expect(screen.getByRole("table", { name: /Monthly activity in USD/i })).toBeInTheDocument();
     expect(screen.getAllByText("No salary data for these filters")).toHaveLength(3);
   });
@@ -214,7 +214,7 @@ describe("analytics route page", () => {
     backend({ distribution: () => json({ error: { message: "boom" } }, 500) });
     renderAt("/analytics");
 
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
     expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.getByRole("alert")).toHaveTextContent(/could not load salary distribution/i);
     expect(screen.getByText("Compensation summary")).toBeInTheDocument();
@@ -225,7 +225,7 @@ describe("analytics route page", () => {
     const seen = backend({ summary: () => json({ error: { message: "boom" } }, 500) });
     renderAt("/analytics");
 
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
     expect(screen.getByRole("alert")).toHaveTextContent(/could not load compensation summary/i);
     expect(find(seen, "groups").searchParams.has("currency")).toBe(false);
     expect(screen.getByRole("table", { name: /Groups by department/i })).toBeInTheDocument();
@@ -235,7 +235,7 @@ describe("analytics route page", () => {
   it("alerts above the filters when filter options fail to load", async () => {
     backend({ filters: () => json({ error: { message: "boom" } }, 500) });
     renderAt("/analytics");
-    await screen.findByRole("heading", { name: "Salary analytics" });
+    await screen.findByRole("heading", { name: "Analytics" });
     expect(screen.getByRole("alert")).toHaveTextContent(/filter options/i);
     expect(screen.getByLabelText("Department")).toBeInTheDocument();
   });

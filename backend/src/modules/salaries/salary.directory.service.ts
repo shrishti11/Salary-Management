@@ -30,6 +30,8 @@ function serializeRow(employee: DirectoryEmployee, today: string) {
       firstName: employee.firstName,
       lastName: employee.lastName,
       email: employee.email,
+      designation: employee.designation,
+      joiningDate: isoDate(employee.joiningDate),
       department: employee.department,
       country: employee.country,
       status: employee.status,
@@ -65,6 +67,8 @@ function buildOrderBy(
       return [{ employeeCode: order }, { id: "asc" }];
     case "country":
       return [{ country: order }, { id: "asc" }];
+    case "joiningDate":
+      return [{ joiningDate: order }, { id: "asc" }];
   }
 }
 
