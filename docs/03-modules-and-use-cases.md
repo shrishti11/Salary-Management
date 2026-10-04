@@ -53,11 +53,11 @@ Provide a centralized directory for managing employee information across the org
 **Description:** Create a new employee record.
 
 **Sub-features:**
-- Enter employee ID and basic information.
+- Enter basic information; the employee ID (`EMP-00001`, ...) is generated automatically.
 - Enter department, designation and country.
 - Enter joining date and employment status.
 - Validate required fields.
-- Prevent duplicate employee IDs and email addresses.
+- Prevent duplicate email addresses (employee IDs are unique by construction).
 - Save the employee record.
 
 #### UC-EMP-04: View Employee Profile

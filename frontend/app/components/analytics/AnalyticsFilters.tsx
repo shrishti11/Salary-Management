@@ -1,5 +1,7 @@
 import { Button, Paper, TextField } from "@mui/material";
 
+import DateField from "~/components/common/DateField";
+
 import { hasActiveAnalyticsFilters, isRealDate, type AnalyticsParams, type FilterOptions } from "~/lib/analytics-api";
 import { COUNTRIES } from "~/lib/countries";
 
@@ -67,9 +69,9 @@ export default function AnalyticsFilters({ params, effectiveCurrency, options, o
         <option value="gross">Gross</option>
         <option value="net">Net</option>
       </TextField>
-      <TextField id="analytics-as-of" type="date" label="As of" size="small" value={params.asOf} onChange={(e) => date("asOf")(e.target.value)} slotProps={DATE_FIELD} />
-      <TextField id="analytics-from" type="date" label="From" size="small" value={params.from} onChange={(e) => date("from")(e.target.value)} slotProps={DATE_FIELD} />
-      <TextField id="analytics-to" type="date" label="To" size="small" value={params.to} onChange={(e) => date("to")(e.target.value)} slotProps={{ ...DATE_FIELD, htmlInput: { max: today } }} />
+      <DateField id="analytics-as-of" label="As of" size="small" value={params.asOf} onChange={(e) => date("asOf")(e.target.value)} slotProps={DATE_FIELD} />
+      <DateField id="analytics-from" label="From" size="small" value={params.from} onChange={(e) => date("from")(e.target.value)} slotProps={DATE_FIELD} />
+      <DateField id="analytics-to" label="To" size="small" value={params.to} onChange={(e) => date("to")(e.target.value)} slotProps={{ ...DATE_FIELD, htmlInput: { max: today } }} />
       <Button onClick={onClear} disabled={!hasActiveAnalyticsFilters(params)}>
         Reset filters
       </Button>

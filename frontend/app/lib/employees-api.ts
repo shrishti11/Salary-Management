@@ -5,7 +5,7 @@ import type { EmployeeFormValues } from "~/lib/employee-form";
 
 export type EmployeeStatus = "ACTIVE" | "INACTIVE";
 export type SortOrder = "asc" | "desc";
-export const PAGE_SIZES = [10, 20, 50] as const;
+export const PAGE_SIZES = [10, 20, 50, 100] as const;
 
 export interface Department {
   id: string;
@@ -44,7 +44,7 @@ export type ApiResult<T> =
 
 export interface FormError {
   message: string;
-  field?: "employeeCode" | "email" | "departmentId";
+  field?: "email" | "departmentId";
 }
 
 export async function apiCall<T>(request: Request, path: string, init: RequestInit = {}): Promise<ApiResult<T>> {
@@ -95,7 +95,6 @@ export function setEmployeeStatus(request: Request, id: string, status: Employee
 }
 
 const FIELD_BY_CODE: Record<string, NonNullable<FormError["field"]>> = {
-  DUPLICATE_EMPLOYEE_CODE: "employeeCode",
   DUPLICATE_EMAIL: "email",
   INVALID_DEPARTMENT: "departmentId",
 };

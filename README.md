@@ -21,6 +21,7 @@ Stack: Bun, Express 5 + Prisma 7 + PostgreSQL (backend), React Router v8 (SSR) +
 cp .env.example .env                          # then set JWT_SECRET, e.g. the output of: openssl rand -hex 32
 docker compose up --build
 docker compose exec backend bun run db:seed   # one-time: dev admin + sample departments, employees and salary history
+# then sign in as the admin and click "Load demo data" on the dashboard (10,000 employees with salary history)
 ```
 
 The backend applies pending migrations on start. Seeding is manual so it never runs automatically in a production-like container.
@@ -39,6 +40,9 @@ Note: in compose `NODE_ENV=production`, so the session cookie is `Secure`. Brows
 - Employees (ADMIN and HR_MANAGER): `GET/POST /api/employees`, `GET/PATCH /api/employees/:id`, `PATCH /api/employees/:id/status`; `GET /api/departments`
 - Salaries (ADMIN and HR_MANAGER): `GET/POST /api/employees/:id/salaries`, `GET /api/employees/:id/salaries/:salaryId` (append-only; a revision never overwrites earlier records)
 - Current salaries (ADMIN and HR_MANAGER): `GET /api/salaries` (current salary per employee, with designation and joining date; search, filters, sorting including joining date, pagination); it backs the `/employees` list
+- Employee IDs are generated (`EMP-00001`, ...); the add form has no ID field.
+- Demo data: `GET /api/demo-data`, `POST /api/demo-data/seed` (ADMIN; exactly 10,000 employees, idempotent). CLI: `bun run db:seed:demo` in `backend/`.
+- CSV export: `GET /api/salaries/export` (the Employees list's "Export CSV" button, current filters)
 - Dashboard (ADMIN and HR_MANAGER): `GET /api/dashboard` (active employees, gross, as of today)
 - Analytics (ADMIN and HR_MANAGER): `GET /api/analytics/summary`, `/distribution`, `/groups`, `/trends`, `/filters` (filters: department, country, designation, status, currency, basis, as-of date, trend range; all money per currency, never combined)
 - UI routes: `/dashboard` (4 stat tiles, attention items, recent activity), `/employees` (employee and current-salary list; add employee, set/revise salary, edit and deactivate from the row menu), `/employees/:id` (profile with Overview and Compensation tabs and edit/salary dialogs), `/analytics` (filterable analytics). `/salaries`, `/employees/new` and `/employees/:id/edit` only redirect to the routes above.

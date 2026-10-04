@@ -8,6 +8,7 @@ import { errorHandler, notFoundHandler } from "./middleware/error.middleware.ts"
 import { analyticsRouter } from "./modules/analytics/analytics.routes.ts";
 import { dashboardRouter } from "./modules/analytics/dashboard.routes.ts";
 import { authRouter } from "./modules/auth/auth.routes.ts";
+import { demoDataRouter } from "./modules/demo-data/demo-data.routes.ts";
 import { departmentRouter } from "./modules/departments/department.routes.ts";
 import { employeeRouter } from "./modules/employees/employee.routes.ts";
 import { salaryDirectoryRouter } from "./modules/salaries/salary.directory.routes.ts";
@@ -32,6 +33,7 @@ app.use("/api/departments", departmentRouter);
 app.use("/api/salaries", salaryDirectoryRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/demo-data", demoDataRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

@@ -30,6 +30,7 @@ import {
 } from "~/lib/employees-api";
 import { createSalary, getSalaries, toSalaryFormError, type Salary } from "~/lib/salaries-api";
 import { nextDay, toPayload, type SalaryFormValues } from "~/lib/salary-form";
+import { useFetcherResult } from "~/lib/use-fetcher-result";
 import type { Route } from "./+types/employee-profile";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -92,8 +93,9 @@ export async function action({ request, params }: Route.ActionArgs): Promise<Act
 
   switch (body.intent) {
     case "update": {
-      // The employee code is immutable; never send it.
-      const { intent: _intent, employeeCode: _employeeCode, ...input } = body;
+      // The backend rejects unknown fields (and the ID is generated), so never forward it.
+      const { intent: _intent, ...input } = body;
+      delete (input as { employeeCode?: string }).employeeCode;
       const result = await updateEmployee(request, params.id, input);
       return result.ok ? { intent: "update", message: "Employee updated" } : { intent: "update", error: toFormError(result) };
     }
@@ -160,22 +162,6 @@ function DetailCard({ title, children }: { title: string; children: ReactNode })
 }
 
 type ProfileTab = "overview" | "compensation";
-
-/**
- * Runs `handle` once per fetcher result, and only after the fetcher is idle. While the fetcher is
- * still "loading" (revalidating after its action), a URL change from the handler would abort that
- * revalidation and leave the page showing stale loader data.
- */
-function useFetcherResult<T>(fetcher: { state: string; data: T | undefined }, handle: (data: T) => void) {
-  const handled = useRef<T | undefined>(undefined);
-  useEffect(() => {
-    const data = fetcher.data;
-    if (fetcher.state !== "idle" || data === undefined || handled.current === data) return;
-    handled.current = data;
-    handle(data);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fetcher.state, fetcher.data]);
-}
 
 export default function EmployeeProfile() {
   const { employee, salaries, departments } = useLoaderData<typeof loader>();
@@ -445,7 +431,6 @@ export default function EmployeeProfile() {
         mode="edit"
         departments={departments}
         defaultValues={{
-          employeeCode: employee.employeeCode,
           firstName: employee.firstName,
           lastName: employee.lastName,
           email: employee.email,

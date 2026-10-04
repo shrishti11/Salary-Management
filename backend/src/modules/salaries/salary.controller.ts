@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
 
-import { listSalaryDirectory } from "./salary.directory.service.ts";
+import { exportSalaryDirectoryCsv, listSalaryDirectory } from "./salary.directory.service.ts";
 import { createSalarySchema, employeeIdParamSchema, listDirectoryQuerySchema, salaryParamsSchema } from "./salary.schema.ts";
 import { createSalary, getSalaries, getSalary } from "./salary.service.ts";
 
@@ -24,4 +24,14 @@ export async function getSalaryHandler(request: Request, response: Response) {
 export async function listSalaryDirectoryHandler(request: Request, response: Response) {
   const query = listDirectoryQuerySchema.parse(request.query);
   response.status(200).json(await listSalaryDirectory(query));
+}
+
+export async function exportSalaryDirectoryHandler(request: Request, response: Response) {
+  const query = listDirectoryQuerySchema.parse(request.query);
+  const { csv } = await exportSalaryDirectoryCsv(query);
+  response
+    .status(200)
+    .type("text/csv; charset=utf-8")
+    .set("Content-Disposition", `attachment; filename="employees-${new Date().toISOString().slice(0, 10)}.csv"`)
+    .send(csv);
 }

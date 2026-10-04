@@ -139,6 +139,15 @@ describe("employees route: list", () => {
     });
   });
 
+  it("exports exactly the current filters and sort, never the page", async () => {
+    backendWith(twoRows);
+    renderAt("/employees?status=ALL&country=IN&sortBy=joiningDate&sortOrder=desc&page=1&pageSize=50");
+    const link = await screen.findByRole("link", { name: "Export CSV" });
+    const href = new URL(link.getAttribute("href")!, "http://x");
+    expect(href.pathname).toBe("/employees/export");
+    expect(Object.fromEntries(href.searchParams)).toEqual({ status: "ALL", country: "IN", sortBy: "joiningDate", sortOrder: "desc" });
+  });
+
   it("sorts by joining date when the Joined header is clicked", async () => {
     backendWith(twoRows);
     const router = renderAt("/employees");
@@ -249,7 +258,6 @@ describe("employees route: list", () => {
 
 async function fillEmployee() {
   const d = within(screen.getByRole("dialog"));
-  await userEvent.type(d.getByLabelText("Employee ID"), "EMP-9");
   await userEvent.type(d.getByLabelText("First name"), "Asha");
   await userEvent.type(d.getByLabelText("Last name"), "Rao");
   await userEvent.type(d.getByLabelText("Work email"), "asha@example.com");
@@ -304,7 +312,7 @@ describe("employees route: add dialog", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 
     const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST");
-    expect(JSON.parse(String(post?.[1]?.body))).toMatchObject({ employeeCode: "EMP-9", firstName: "Asha" });
+    expect(JSON.parse(String(post?.[1]?.body))).toMatchObject({ firstName: "Asha" });
     expect(JSON.parse(String(post?.[1]?.body))).not.toHaveProperty("intent");
     expect(seen.length).toBeGreaterThanOrEqual(2);
   });
