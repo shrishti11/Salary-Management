@@ -77,6 +77,18 @@ describe("EmployeeFilterBar", () => {
     expect(box).toHaveValue("zed");
   });
 
+  it("keeps a trailing space when the URL echoes the trimmed search", async () => {
+    const onChange = vi.fn();
+    const { rerender } = setup(defaults, onChange);
+    const box = screen.getByLabelText("Search");
+
+    await userEvent.type(box, "as ");
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith({ q: "as" }), { timeout: 1500 });
+    rerender(<EmployeeFilterBar values={{ ...defaults, q: "as" }} departments={departments} onChange={onChange} onClear={() => {}} />);
+
+    expect(box).toHaveValue("as ");
+  });
+
   it("treats search, popover filters and non-Active status as active filters", () => {
     expect(hasActiveFilters(defaults)).toBe(false);
     expect(hasActiveFilters({ ...defaults, q: "a" })).toBe(true);

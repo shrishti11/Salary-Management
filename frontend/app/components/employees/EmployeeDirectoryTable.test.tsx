@@ -87,6 +87,29 @@ describe("EmployeeDirectoryTable", () => {
     expect(screen.queryByRole("button", { name: /Current salary/ })).not.toBeInTheDocument();
   });
 
+  it("formats each salary in the employee's own currency", () => {
+    renderTable([
+      row({ id: "e1" }, { current: { id: "s1", currency: "INR", effectiveDate: "2026-01-01", gross: "1250000.50", net: "1", deductions: "0", reason: null } }),
+      row({ id: "e2", firstName: "Kenji" }, { current: { id: "s2", currency: "JPY", effectiveDate: "2026-01-01", gross: "600000", net: "1", deductions: "0", reason: null } }),
+    ]);
+    expect(within(screen.getByRole("row", { name: /Asha Rao/ })).getByText("₹1,250,000.50")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /Kenji Rao/ })).getByText("¥600,000")).toBeInTheDocument();
+  });
+
+  it("shows Revision scheduled only when a future salary exists, and each row's status", () => {
+    renderTable([row({ id: "e1" }, { hasScheduled: true }), row({ id: "e2", firstName: "Kenji", status: "INACTIVE" })]);
+    expect(within(screen.getByRole("row", { name: /Asha Rao/ })).getByText("Revision scheduled")).toBeInTheDocument();
+    const second = screen.getByRole("row", { name: /Kenji Rao/ });
+    expect(within(second).queryByText("Revision scheduled")).not.toBeInTheDocument();
+    expect(within(second).getByText("Inactive")).toBeInTheDocument();
+  });
+
+  it("marks the active sort column", () => {
+    renderTable([row()]);
+    expect(screen.getByRole("columnheader", { name: /^Name/ })).toHaveAttribute("aria-sort", "ascending");
+    expect(screen.getByRole("columnheader", { name: /^Joined/ })).not.toHaveAttribute("aria-sort");
+  });
+
   it("opens the profile when a row is clicked", async () => {
     const { router } = renderTable([row()]);
     await userEvent.click(screen.getByText("Engineering"));

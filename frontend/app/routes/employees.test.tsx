@@ -195,6 +195,42 @@ describe("employees route: list", () => {
     expect(await screen.findByText("First1 Last1")).toBeInTheDocument();
   });
 
+  it("does not redirect when the last page itself comes back empty", async () => {
+    const seen: URL[] = [];
+    backendWith(() => json({ data: [], pagination: { page: 3, pageSize: 20, total: 45, totalPages: 3 } }), seen);
+    const router = renderAt("/employees?page=3");
+
+    expect(await screen.findByText("No employees yet")).toBeInTheDocument();
+    expect(router.state.location.search).toBe("?page=3");
+    expect(seen).toHaveLength(1);
+  });
+
+  it("keeps both the search text and a department chosen while the search is still loading", async () => {
+    let slow = false;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = new URL(String(input));
+        if (url.pathname === "/api/departments") return json(departments);
+        if (slow) await new Promise((resolve) => setTimeout(resolve, 300));
+        return twoRows();
+      }),
+    );
+    const router = renderAt("/employees");
+    await screen.findByText("First1 Last1");
+
+    slow = true;
+    await userEvent.type(screen.getByLabelText("Search"), "asha");
+    // The debounced search navigation is in flight (not yet committed) when the department is picked.
+    await waitFor(() => expect(router.state.navigation.state).toBe("loading"));
+    await userEvent.click(screen.getByRole("button", { name: /^Filters/ }));
+    await userEvent.selectOptions(within(screen.getByRole("presentation")).getByLabelText("Department"), DEPT_ID);
+
+    await waitFor(() => expect(router.state.navigation.state).toBe("idle"), { timeout: 2000 });
+    expect(search(router).get("q")).toBe("asha");
+    expect(search(router).get("departmentId")).toBe(DEPT_ID);
+  });
+
   it("shows the error boundary when the backend fails", async () => {
     backendWith(() => json({ error: { message: "boom" } }, 500));
     renderAt("/employees");
