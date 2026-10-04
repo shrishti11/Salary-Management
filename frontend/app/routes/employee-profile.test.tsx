@@ -119,7 +119,7 @@ describe("employee profile page", () => {
     expect(screen.getByText("Phone")).toBeInTheDocument();
     expect(screen.getByText("—")).toBeInTheDocument();
     expect(screen.getByText("Joining date")).toBeInTheDocument();
-    expect(screen.getByText("2024-01-15")).toBeInTheDocument();
+    expect(screen.getByText("Jan 15, 2024")).toBeInTheDocument();
     expect(screen.getByText("EMP-1")).toBeInTheDocument();
     expect(screen.getByText("Engineering")).toBeInTheDocument();
     expect(screen.getByText("Staff Engineer")).toBeInTheDocument();
@@ -542,7 +542,7 @@ describe("employee profile compensation", () => {
     expect(within(screen.getByTestId("current-salary")).getByText("Net")).toBeInTheDocument();
     const rows = within(screen.getByRole("table", { name: "Salary history" })).getAllByRole("row");
     expect(rows).toHaveLength(2);
-    expect(rows[1]).toHaveTextContent("2025-06-01");
+    expect(rows[1]).toHaveTextContent("Jun 1, 2025");
     expect(rows[1]).toHaveTextContent("$5,000.00");
   });
 

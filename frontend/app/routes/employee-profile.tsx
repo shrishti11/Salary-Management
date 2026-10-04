@@ -19,6 +19,7 @@ import CompensationSection from "~/components/salary/CompensationSection";
 import SalaryFormDialog from "~/components/salary/SalaryFormDialog";
 import { countryName } from "~/lib/countries";
 import type { EmployeeFormValues } from "~/lib/employee-form";
+import { formatDate } from "~/lib/format-date";
 import {
   getEmployee,
   listDepartments,
@@ -417,7 +418,7 @@ export default function EmployeeProfile() {
               <Detail label="Department">{employee.department.name}</Detail>
               <Detail label="Designation">{employee.designation}</Detail>
               <Detail label="Country">{countryName(employee.country)}</Detail>
-              <Detail label="Joining date">{employee.joiningDate}</Detail>
+              <Detail label="Joining date">{formatDate(employee.joiningDate)}</Detail>
             </DetailCard>
           </>
         )}

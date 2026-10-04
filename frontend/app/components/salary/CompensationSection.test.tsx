@@ -85,6 +85,7 @@ describe("CompensationSection", () => {
     renderSection({ ok: true, data: populated });
     expect(screen.getByRole("heading", { name: "Current salary" })).toBeInTheDocument();
     const card = screen.getByTestId("current-salary");
+    expect(within(card).getByText("USD · Effective Jan 1, 2026")).toBeInTheDocument();
     expect(within(card).getByText("Annual review")).toBeInTheDocument();
     expect(within(card).getByText("Housing")).toBeInTheDocument();
     expect(within(card).getByText("Tax")).toBeInTheDocument();
@@ -97,7 +98,7 @@ describe("CompensationSection", () => {
 
   it("shows the scheduled alert with the record currency", () => {
     renderSection({ ok: true, data: populated });
-    expect(screen.getByText(/Scheduled change effective 2027-01-01: net ₹6,000\.00/)).toBeInTheDocument();
+    expect(screen.getByText(/Scheduled change effective Jan 1, 2027: net ₹6,000\.00/)).toBeInTheDocument();
   });
 
   it("shows the inactive note for an inactive employee with history", () => {
@@ -110,7 +111,7 @@ describe("CompensationSection", () => {
     const table = screen.getByRole("table", { name: "Salary history" });
     const rows = within(table).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(4);
-    expect(rows[0]).toHaveTextContent("2027-01-01");
+    expect(rows[0]).toHaveTextContent("Jan 1, 2027");
     expect(rows[0]).toHaveTextContent("Scheduled");
     expect(rows[0]).toHaveTextContent("+₹500.00 (9.09%)");
     expect(rows[1]).toHaveTextContent("+$300.00 (5.77%)");
@@ -123,11 +124,11 @@ describe("CompensationSection", () => {
   it("orders history newest first even when given out of order", () => {
     renderSection({ ok: true, data: { ...populated, history: [previous, dropped, scheduled, current] } });
     const rows = within(screen.getByRole("table", { name: "Salary history" })).getAllByRole("row").slice(1);
-    expect(rows.map((row) => row.textContent?.slice(0, 10))).toEqual([
-      "2027-01-01",
-      "2026-01-01",
-      "2025-01-01",
-      "2024-01-01",
+    expect(rows.map((row) => row.querySelector("td")?.textContent)).toEqual([
+      "Jan 1, 2027",
+      "Jan 1, 2026",
+      "Jan 1, 2025",
+      "Jan 1, 2024",
     ]);
   });
 

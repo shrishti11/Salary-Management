@@ -129,7 +129,7 @@ describe("SalaryFormDialog", () => {
         name: "Save salary revision?",
       });
       expect(confirm).toHaveTextContent("$4,800.00");
-      expect(confirm).toHaveTextContent("2026-03-01");
+      expect(confirm).toHaveTextContent("Mar 1, 2026");
       expect(onSubmit).not.toHaveBeenCalled();
 
       await userEvent.click(

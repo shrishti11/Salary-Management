@@ -3,6 +3,7 @@ import { Link } from "react-router";
 
 import type { DashboardData } from "~/lib/analytics-api";
 import { formatMoney } from "~/lib/currencies";
+import { formatDate } from "~/lib/format-date";
 
 type Props = Pick<DashboardData, "recentEmployees" | "recentRevisions">;
 
@@ -49,7 +50,7 @@ export default function RecentActivity({ recentEmployees, recentRevisions }: Pro
           <ListItem key={e.id} disableGutters>
             <ListItemText
               primary={<EmployeeLink id={e.id} name={e.name} />}
-              secondary={`${e.employeeCode} · ${e.department} · joined ${e.joiningDate}`}
+              secondary={`${e.employeeCode} · ${e.department} · joined ${formatDate(e.joiningDate)}`}
             />
           </ListItem>
         ))}
@@ -63,7 +64,7 @@ export default function RecentActivity({ recentEmployees, recentRevisions }: Pro
                   <EmployeeLink id={r.employee.id} name={r.employee.name} /> {change(r.changePercent)}
                 </>
               }
-              secondary={`${formatMoney(r.gross, r.currency)} · effective ${r.effectiveDate} · ${r.reason} · by ${r.createdBy.name}`}
+              secondary={`${formatMoney(r.gross, r.currency)} · effective ${formatDate(r.effectiveDate)} · ${r.reason} · by ${r.createdBy.name}`}
               slotProps={{ primary: { component: "div" }, secondary: { component: "div" } }}
             />
           </ListItem>

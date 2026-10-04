@@ -63,7 +63,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("Dashboard route", () => {
   it("shows the as-of date and no signed-in paragraph", async () => {
     renderDashboard(() => json(dashboard));
-    expect(await screen.findByText("As of 2026-10-03")).toBeInTheDocument();
+    expect(await screen.findByText("As of Oct 3, 2026")).toBeInTheDocument();
     expect(screen.queryByText(/Signed in as/)).not.toBeInTheDocument();
   });
 
@@ -116,6 +116,8 @@ describe("Dashboard route", () => {
     expect(screen.getByText("+30.00%")).toBeInTheDocument();
     expect(screen.getByText(/Annual review/)).toBeInTheDocument();
     expect(screen.getByText(/Hannah HR/)).toBeInTheDocument();
+    expect(screen.getByText(/joined Sep 1, 2026/)).toBeInTheDocument();
+    expect(screen.getByText(/effective Oct 1, 2026/)).toBeInTheDocument();
   });
 
   it("handles empty recent activity", async () => {

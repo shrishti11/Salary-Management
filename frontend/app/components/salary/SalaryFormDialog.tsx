@@ -6,6 +6,7 @@ import { Controller, useFieldArray, useForm } from "react-hook-form";
 import ConfirmDialog from "~/components/common/ConfirmDialog";
 import FormDialog from "~/components/common/FormDialog";
 import { CURRENCIES, formatMoney } from "~/lib/currencies";
+import { formatDate } from "~/lib/format-date";
 import {
   computeFormTotals,
   EXTRA_TYPES,
@@ -122,7 +123,7 @@ export default function SalaryFormDialog({
         computeFormTotals(pending)
           ? formatMoney(computeFormTotals(pending)!.net, pending.currency)
           : "—"
-      } effective ${pending.effectiveDate}. The previous record is kept in history.${
+      } effective ${formatDate(pending.effectiveDate)}. The previous record is kept in history.${
         current && pending.currency !== current.currency
           ? ` Currency changes from ${current.currency} to ${pending.currency}; amounts are not converted.`
           : ""

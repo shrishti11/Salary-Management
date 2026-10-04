@@ -3,6 +3,7 @@ import { Alert, Box, Button, Chip, Paper, Table, TableBody, TableCell, TableHead
 import EmptyState from "~/components/common/EmptyState";
 import Money from "~/components/common/Money";
 import { formatMoney } from "~/lib/currencies";
+import { formatDate } from "~/lib/format-date";
 import type { ApiResult } from "~/lib/employees-api";
 import type { Salary, SalaryComponentType, SalaryOverview } from "~/lib/salaries-api";
 
@@ -54,7 +55,7 @@ function CurrentCard({ salary }: { salary: Salary }) {
     <Box data-testid="current-salary" sx={{ display: "grid", gap: 2 }}>
       <Box>
         <Typography variant="body2" color="text.secondary">
-          {salary.currency} · Effective {salary.effectiveDate}
+          {salary.currency} · Effective {formatDate(salary.effectiveDate)}
         </Typography>
         {salary.reason && <Typography>{salary.reason}</Typography>}
       </Box>
@@ -128,7 +129,7 @@ export default function CompensationSection({ result, employeeActive, onSetSalar
 
       {scheduled && (
         <Alert severity="info">
-          Scheduled change effective {scheduled.effectiveDate}: net {formatMoney(scheduled.totals.net, scheduled.currency)}
+          Scheduled change effective {formatDate(scheduled.effectiveDate)}: net {formatMoney(scheduled.totals.net, scheduled.currency)}
         </Alert>
       )}
 
@@ -163,7 +164,7 @@ export default function CompensationSection({ result, employeeActive, onSetSalar
             <TableBody>
               {history.map((salary) => (
                 <TableRow key={salary.id}>
-                  <TableCell>{salary.effectiveDate}</TableCell>
+                  <TableCell>{formatDate(salary.effectiveDate)}</TableCell>
                   <TableCell>
                     <SalaryStatusChip status={salary.status} />
                   </TableCell>

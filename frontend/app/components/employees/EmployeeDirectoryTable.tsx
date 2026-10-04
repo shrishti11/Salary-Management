@@ -20,6 +20,7 @@ import { Link, useNavigate } from "react-router";
 import Money from "~/components/common/Money";
 import StatusChip from "~/components/common/StatusChip";
 import { countryName } from "~/lib/countries";
+import { formatDate } from "~/lib/format-date";
 import type { SortOrder } from "~/lib/employees-api";
 import type { SalaryDirectoryRow, SalarySortField } from "~/lib/salary-directory-api";
 
@@ -32,9 +33,6 @@ interface EmployeeDirectoryTableProps {
   onSort: (field: SalarySortField) => void;
   onAction: (action: EmployeeRowAction, row: SalaryDirectoryRow) => void;
 }
-
-const dateFormat = new Intl.DateTimeFormat("en", { dateStyle: "medium", timeZone: "UTC" });
-const formatDate = (value: string) => dateFormat.format(new Date(`${value.slice(0, 10)}T00:00:00Z`));
 
 const stop = (event: MouseEvent) => event.stopPropagation();
 

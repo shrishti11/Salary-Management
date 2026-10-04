@@ -5,6 +5,7 @@ import MetricCard from "~/components/analytics/MetricCard";
 import RecentActivity from "~/components/analytics/RecentActivity";
 import PageHeader from "~/components/layout/PageHeader";
 import { getDashboard } from "~/lib/analytics-api";
+import { formatDate } from "~/lib/format-date";
 import type { Route } from "./+types/dashboard";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -36,7 +37,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle={`As of ${asOf}`} />
+      <PageHeader title="Dashboard" subtitle={`As of ${formatDate(asOf)}`} />
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, mb: 2 }}>
         <MetricCard label="Active employees" value={String(metrics.activeEmployees)} />
         <MetricCard label="Departments" value={String(metrics.departmentCount)} />
