@@ -1,5 +1,5 @@
 import { Alert, Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
-import type { FormEventHandler, ReactNode } from "react";
+import { useId, type FormEventHandler, type ReactNode } from "react";
 
 interface FormDialogProps {
   open: boolean;
@@ -14,10 +14,11 @@ interface FormDialogProps {
 }
 
 export default function FormDialog({ open, title, submitLabel, submitting = false, error, maxWidth = "sm", onClose, onSubmit, children }: FormDialogProps) {
+  const titleId = useId();
   return (
-    <Dialog open={open} onClose={submitting ? undefined : onClose} fullWidth maxWidth={maxWidth} aria-labelledby="form-dialog-title">
+    <Dialog open={open} onClose={submitting ? undefined : onClose} fullWidth maxWidth={maxWidth} aria-labelledby={titleId}>
       <form noValidate onSubmit={onSubmit}>
-        <DialogTitle id="form-dialog-title">{title}</DialogTitle>
+        <DialogTitle id={titleId}>{title}</DialogTitle>
         <DialogContent dividers>
           {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
           {children}

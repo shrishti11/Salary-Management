@@ -1,5 +1,5 @@
 import { Badge, Box, Button, Popover, TextField, ToggleButton, ToggleButtonGroup } from "@mui/material";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 import { COUNTRIES } from "~/lib/countries";
 import type { Department } from "~/lib/employees-api";
@@ -26,6 +26,7 @@ export function hasActiveFilters(values: EmployeeFilterValues) {
 export default function EmployeeFilterBar({ values, departments, onChange, onClear }: EmployeeFilterBarProps) {
   const [search, setSearch] = useState(values.q);
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const panelId = useId();
 
   const lastEmitted = useRef(values.q);
   const onChangeRef = useRef(onChange);
@@ -80,7 +81,9 @@ export default function EmployeeFilterBar({ values, departments, onChange, onCle
           variant="outlined"
           color="inherit"
           aria-label={count ? `Filters (${count} active)` : "Filters"}
+          aria-haspopup="dialog"
           aria-expanded={anchor !== null}
+          aria-controls={anchor ? panelId : undefined}
           onClick={(event) => setAnchor(event.currentTarget)}
           sx={{ borderColor: "divider" }}
         >
@@ -97,7 +100,14 @@ export default function EmployeeFilterBar({ values, departments, onChange, onCle
         anchorEl={anchor}
         onClose={() => setAnchor(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-        slotProps={{ paper: { sx: { p: 2, mt: 1, width: 280, display: "grid", gap: 2 } } }}
+        slotProps={{
+          paper: {
+            id: panelId,
+            role: "dialog",
+            "aria-label": "Filters",
+            sx: { p: 2, mt: 1, width: 280, display: "grid", gap: 2 },
+          },
+        }}
       >
         <TextField
           id="employee-filter-department"

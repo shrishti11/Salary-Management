@@ -15,6 +15,17 @@ const setup = (values = defaults, onChange = vi.fn(), onClear = vi.fn()) => {
 const openFilters = () => userEvent.click(screen.getByRole("button", { name: /^Filters/ }));
 
 describe("EmployeeFilterBar", () => {
+  it("exposes the Filters button as a popup trigger controlling the filters panel", async () => {
+    setup();
+    const button = screen.getByRole("button", { name: /^Filters/ });
+    expect(button).toHaveAttribute("aria-haspopup", "dialog");
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    await openFilters();
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    const panel = screen.getByRole("dialog", { name: "Filters" });
+    expect(button).toHaveAttribute("aria-controls", panel.id);
+  });
+
   it("shows Active selected by default and emits status changes", async () => {
     const { onChange } = setup();
     expect(screen.getByRole("button", { name: "Active" })).toHaveAttribute("aria-pressed", "true");

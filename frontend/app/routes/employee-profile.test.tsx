@@ -126,6 +126,37 @@ describe("employee profile page", () => {
     expect(screen.getByText("India")).toBeInTheDocument();
   });
 
+  it("exposes More actions as a menu trigger controlling its menu", async () => {
+    const user = userEvent.setup();
+    stubBackend(() => json({ employee }));
+    renderAt("/employees/e1");
+
+    const trigger = await screen.findByRole("button", { name: "More actions" });
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await user.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(trigger).toHaveAttribute("aria-controls", screen.getByRole("menu").id);
+  });
+
+  it("points every tab's aria-controls at a panel that exists", async () => {
+    const user = userEvent.setup();
+    stubBackend(() => json({ employee }));
+    renderAt("/employees/e1");
+
+    const tabs = await screen.findAllByRole("tab");
+    const assertPanels = () => {
+      for (const tab of screen.getAllByRole("tab")) {
+        const id = tab.getAttribute("aria-controls");
+        expect(id && document.getElementById(id), `panel for ${tab.textContent}`).not.toBeNull();
+      }
+    };
+    expect(tabs).toHaveLength(2);
+    assertPanels();
+    await user.click(screen.getByRole("tab", { name: "Compensation" }));
+    assertPanels();
+  });
+
   it("shows the current salary card on the Compensation tab", async () => {
     const user = userEvent.setup();
     stubBackend(

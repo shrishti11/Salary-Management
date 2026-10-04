@@ -1,5 +1,5 @@
 import { Alert, Avatar, Box, Button, IconButton, Menu, MenuItem, Paper, Tab, Tabs, Typography } from "@mui/material";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import {
   isRouteErrorResponse,
   Link,
@@ -186,6 +186,7 @@ export default function EmployeeProfile() {
 
   const [tab, setTab] = useState<ProfileTab>("overview");
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const moreMenuId = useId();
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Cleared whenever the edit dialog closes, so a reopened dialog never shows a stale server error.
   const [editError, setEditError] = useState<FormError | null>(null);
@@ -347,6 +348,8 @@ export default function EmployeeProfile() {
             <IconButton
               aria-label="More actions"
               aria-haspopup="menu"
+              aria-expanded={menuAnchor !== null}
+              aria-controls={menuAnchor ? moreMenuId : undefined}
               disabled={savingStatus}
               onClick={(event) => setMenuAnchor(event.currentTarget)}
             >
@@ -354,7 +357,12 @@ export default function EmployeeProfile() {
                 ⋯
               </Box>
             </IconButton>
-            <Menu anchorEl={menuAnchor} open={menuAnchor !== null} onClose={() => setMenuAnchor(null)}>
+            <Menu
+              anchorEl={menuAnchor}
+              open={menuAnchor !== null}
+              onClose={() => setMenuAnchor(null)}
+              slotProps={{ list: { id: moreMenuId } }}
+            >
               {active ? (
                 <MenuItem
                   sx={{ color: "error.main" }}
@@ -390,32 +398,44 @@ export default function EmployeeProfile() {
         )}
       </Tabs>
 
-      {activeTab === "overview" ? (
+      {/* Both panel containers always exist (hidden when inactive) so each tab's aria-controls resolves. */}
+      <Box
+        role="tabpanel"
+        id="profile-panel-overview"
+        aria-labelledby="profile-tab-overview"
+        hidden={activeTab !== "overview"}
+        sx={{ display: activeTab === "overview" ? "grid" : "none", gap: 3, gridTemplateColumns: { xs: "1fr", md: "1fr 2fr" }, alignItems: "start" }}
+      >
+        {activeTab === "overview" && (
+          <>
+            <DetailCard title="Contact">
+              <Detail label="Email">{employee.email}</Detail>
+              <Detail label="Phone">{employee.phone ?? "—"}</Detail>
+            </DetailCard>
+            <DetailCard title="Employment">
+              <Detail label="Employee ID">{employee.employeeCode}</Detail>
+              <Detail label="Department">{employee.department.name}</Detail>
+              <Detail label="Designation">{employee.designation}</Detail>
+              <Detail label="Country">{countryName(employee.country)}</Detail>
+              <Detail label="Joining date">{employee.joiningDate}</Detail>
+            </DetailCard>
+          </>
+        )}
+      </Box>
+      {showCompensation && (
         <Box
           role="tabpanel"
-          id="profile-panel-overview"
-          aria-labelledby="profile-tab-overview"
-          sx={{ display: "grid", gap: 3, gridTemplateColumns: { xs: "1fr", md: "1fr 2fr" }, alignItems: "start" }}
+          id="profile-panel-compensation"
+          aria-labelledby="profile-tab-compensation"
+          hidden={activeTab !== "compensation"}
         >
-          <DetailCard title="Contact">
-            <Detail label="Email">{employee.email}</Detail>
-            <Detail label="Phone">{employee.phone ?? "—"}</Detail>
-          </DetailCard>
-          <DetailCard title="Employment">
-            <Detail label="Employee ID">{employee.employeeCode}</Detail>
-            <Detail label="Department">{employee.department.name}</Detail>
-            <Detail label="Designation">{employee.designation}</Detail>
-            <Detail label="Country">{countryName(employee.country)}</Detail>
-            <Detail label="Joining date">{employee.joiningDate}</Detail>
-          </DetailCard>
-        </Box>
-      ) : (
-        <Box role="tabpanel" id="profile-panel-compensation" aria-labelledby="profile-tab-compensation">
-          <CompensationSection
-            result={salaries}
-            employeeActive={active}
-            onSetSalary={canChangeSalary ? requestSalaryDialog : undefined}
-          />
+          {activeTab === "compensation" && (
+            <CompensationSection
+              result={salaries}
+              employeeActive={active}
+              onSetSalary={canChangeSalary ? requestSalaryDialog : undefined}
+            />
+          )}
         </Box>
       )}
 
