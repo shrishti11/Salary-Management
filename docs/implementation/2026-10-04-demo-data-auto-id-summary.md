@@ -20,6 +20,7 @@ Backend 264 passing (new: generator, seed service including concurrency and top-
 
 ## Known limitations
 - Reseed (`POST /api/demo-data/reseed`, dashboard "Reseed demo data" with a confirm) deletes only employees on the `@demo.acme.example` domain and their salary history, then seeds a fresh 10,000. Employee IDs keep counting up (no gap-closing, to avoid racing concurrent creates).
+- Demo employees have distinct full names (140 first x 151 last names, shuffled), so the list is easy to scan; the pool covers more than 10,000 combinations.
 - Every demo employee has a salary, so the dashboard Attention card is empty for demo data. It only flags employees you add without a salary.
 - The seed runs inside one HTTP request (about 8 s); fine for a demo, a job queue would be needed beyond that.
 - Hand-created employees keep working; legacy 4-digit IDs stay as they are.

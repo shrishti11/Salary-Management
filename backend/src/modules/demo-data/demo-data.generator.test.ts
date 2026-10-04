@@ -27,6 +27,12 @@ describe("generateDemoData", () => {
     expect(again.components.length).toBe(data.components.length);
   });
 
+  it("gives all 10,000 demo employees a different full name", () => {
+    const company = generateDemoData(codes(10_000), TODAY);
+    const names = company.employees.map((e) => `${e.firstName} ${e.lastName}`);
+    expect(new Set(names).size).toBe(10_000);
+  });
+
   it("creates one employee per code with unique ids and emails on the demo domain", () => {
     expect(data.employees).toHaveLength(2000);
     expect(new Set(data.employees.map((e) => e.id)).size).toBe(2000);

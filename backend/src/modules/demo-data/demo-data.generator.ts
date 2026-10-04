@@ -40,14 +40,34 @@ const COUNTRIES: Record<string, { currency: string; weight: number; cost: number
 };
 
 const FIRST_NAMES = [
-  "Asha", "Liam", "Olivia", "Noah", "Emma", "Arjun", "Mei", "Lars", "Sofia", "Mateo", "Aisha", "Yuki", "Chloe", "Ethan",
-  "Priya", "Lucas", "Hana", "Omar", "Isla", "Diego", "Zara", "Felix", "Nora", "Ravi", "Anna", "Kenji", "Leila", "Oscar",
-  "Maya", "Hugo", "Ines", "Tariq", "Elena", "Jonas", "Amara", "Ivan", "Grace", "Sven", "Naomi", "Carlos",
+  "Aarav", "Aditi", "Aisha", "Akira", "Alejandro", "Alice", "Amara", "Amelia", "Ananya", "Andre", "Anna", "Anton",
+  "Arjun", "Astrid", "Ava", "Benjamin", "Bianca", "Bruno", "Camila", "Carlos", "Carmen", "Charlotte", "Chen",
+  "Chloe", "Daniel", "Dario", "Deepak", "Diego", "Dmitri", "Elena", "Eli", "Elif", "Emma", "Erik", "Ethan", "Fatima",
+  "Felix", "Finn", "Freya", "Gabriel", "Gianna", "Grace", "Hana", "Hannah", "Hassan", "Hector", "Henrik", "Hugo",
+  "Ibrahim", "Imani", "Ines", "Ingrid", "Isabel", "Isla", "Ivan", "Jack", "Jamal", "Jasmine", "Javier", "Jin",
+  "Johan", "Jonas", "Julia", "Kai", "Kavya", "Kenji", "Khalid", "Kofi", "Lars", "Laura", "Layla", "Leila", "Leo",
+  "Liam", "Lina", "Lucas", "Luca", "Lucia", "Mads", "Mahmoud", "Malik", "Marco", "Maria", "Marta", "Mateo", "Maya",
+  "Mei", "Mia", "Miguel", "Mina", "Mohan", "Nadia", "Naomi", "Natalia", "Neha", "Nia", "Nico", "Noah", "Nora",
+  "Oliver", "Olivia", "Omar", "Oscar", "Pablo", "Paula", "Pedro", "Petra", "Priya", "Rafael", "Rahul", "Rania",
+  "Ravi", "Rhea", "Rohan", "Rosa", "Sakura", "Samir", "Sanjay", "Sara", "Sergio", "Sienna", "Sofia", "Soren", "Sven",
+  "Tariq", "Tess", "Thomas", "Tobias", "Uma", "Valentina", "Victor", "Wei", "Wen", "Xavier", "Yara", "Yuki", "Yusuf",
+  "Zainab", "Zara", "Zoe",
 ];
 const LAST_NAMES = [
-  "Rao", "Smith", "Wilson", "Meyer", "Tan", "Patel", "Garcia", "Kim", "Nguyen", "Brown", "Silva", "Khan", "Rossi", "Sato",
-  "Müller", "Dubois", "Ivanov", "Johnson", "Lee", "Martin", "Nair", "Walker", "Costa", "Hansen", "Okafor", "Chen",
-  "Fischer", "Lopez", "Ahmed", "Novak", "Murphy", "Singh", "Bianchi", "Jensen", "Moreau", "Reddy", "Evans", "Haddad", "Kowalski", "Dlamini",
+  "Abbott", "Adeyemi", "Ahmed", "Alvarez", "Andersson", "Arora", "Bailey", "Banerjee", "Barros", "Bauer", "Becker",
+  "Bell", "Bianchi", "Bose", "Brooks", "Brown", "Campbell", "Carvalho", "Castillo", "Chakraborty", "Chang", "Chen",
+  "Clarke", "Collins", "Costa", "Cruz", "Dang", "Das", "Delgado", "Dhillon", "Diaz", "Dlamini", "Dubois", "Edwards",
+  "Eriksen", "Evans", "Fernandez", "Fischer", "Fleming", "Flores", "Foster", "Fraser", "Fujita", "Gallagher",
+  "Garcia", "Ghosh", "Gill", "Gomez", "Gonzalez", "Gordon", "Grant", "Gupta", "Haddad", "Hansen", "Harris",
+  "Hashemi", "Hayes", "Hoffmann", "Hughes", "Hussain", "Ito", "Iyer", "Jackson", "Jain", "Jensen", "Johansson",
+  "Johnson", "Joshi", "Kapoor", "Kato", "Keller", "Khan", "Kim", "Klein", "Kowalski", "Kumar", "Lambert", "Larsen",
+  "Lee", "Lopez", "Lund", "Machado", "Malhotra", "Martin", "Martinez", "Mehta", "Meyer", "Mitchell", "Moreau",
+  "Morgan", "Mukherjee", "Murphy", "Nair", "Navarro", "Nguyen", "Nielsen", "Novak", "Okafor", "Oliveira", "Olsen",
+  "Ortiz", "Osei", "Park", "Patel", "Pereira", "Petrov", "Pillai", "Quinn", "Rahman", "Rao", "Reddy", "Reyes",
+  "Richards", "Rivera", "Roberts", "Rossi", "Roy", "Russo", "Saito", "Sanchez", "Sandhu", "Sato", "Schmidt",
+  "Schneider", "Sharma", "Shah", "Silva", "Singh", "Smith", "Suzuki", "Tan", "Taylor", "Thompson", "Torres", "Tran",
+  "Varma", "Vasquez", "Verma", "Wagner", "Walker", "Watanabe", "Weber", "Williams", "Wilson", "Wong", "Yadav",
+  "Yamamoto", "Young", "Zhang", "Zhou", "Zimmermann",
 ];
 
 const REVISION_REASONS = ["Annual review", "Annual review", "Promotion", "Market adjustment"];
@@ -130,11 +150,21 @@ export function generateDemoData(
   };
   const departmentNames = Object.keys(DEMO_DEPARTMENTS);
 
+  // Every first/last combination, shuffled: each employee gets a different full name until the pool
+  // (first x last names, thousands) runs out, so the list never shows a wall of identical names.
+  const nameCount = FIRST_NAMES.length * LAST_NAMES.length;
+  const nameOrder = Array.from({ length: nameCount }, (_, i) => i);
+  for (let i = nameOrder.length - 1; i > 0; i--) {
+    const j = random.int(0, i);
+    [nameOrder[i], nameOrder[j]] = [nameOrder[j]!, nameOrder[i]!];
+  }
+
   const data: DemoData = { employees: [], records: [], components: [] };
 
-  for (const employeeCode of employeeCodes) {
-    const firstName = random.pick(FIRST_NAMES);
-    const lastName = random.pick(LAST_NAMES);
+  for (const [index, employeeCode] of employeeCodes.entries()) {
+    const nameIndex = nameOrder[index % nameCount]!;
+    const firstName = FIRST_NAMES[nameIndex % FIRST_NAMES.length]!;
+    const lastName = LAST_NAMES[Math.floor(nameIndex / FIRST_NAMES.length)]!;
     const departmentName = random.pick(departmentNames);
     const [designation, usdBase] = random.pick(DEMO_DEPARTMENTS[departmentName]!);
     const country = pickCountry();
