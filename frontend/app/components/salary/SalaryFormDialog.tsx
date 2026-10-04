@@ -1,19 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  TextField,
-  Typography,
-} from "@mui/material";
-import { useEffect, useMemo, useState } from "react";
+import { Alert, Box, Button, TextField, Typography } from "@mui/material";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import ConfirmDialog from "~/components/common/ConfirmDialog";
+import FormDialog from "~/components/common/FormDialog";
 import { CURRENCIES, formatMoney } from "~/lib/currencies";
 import {
   computeFormTotals,
@@ -44,6 +35,17 @@ const TYPE_LABELS: Record<(typeof EXTRA_TYPES)[number], string> = {
   BONUS: "Bonus",
   DEDUCTION: "Deduction",
 };
+
+function Group({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <Box component="section" aria-labelledby={id} sx={{ "& + &": { mt: 3 } }}>
+      <Typography id={id} variant="subtitle2" component="h3" sx={{ mb: 1.5 }}>
+        {title}
+      </Typography>
+      <Box sx={{ display: "grid", gap: 2 }}>{children}</Box>
+    </Box>
+  );
+}
 
 export default function SalaryFormDialog({
   open,
@@ -108,6 +110,8 @@ export default function SalaryFormDialog({
   const money = (amount: string) =>
     formatMoney(amount, values.currency || "USD");
 
+  const currencyChanged = mode === "revise" && !!current && !!values.currency && values.currency !== current.currency;
+
   const submit = handleSubmit((submitted) => {
     if (mode === "revise") setPending(submitted);
     else onSubmit(submitted);
@@ -125,247 +129,191 @@ export default function SalaryFormDialog({
       }`
     : "";
 
+  const textField = (
+    name: "effectiveDate" | "reason" | "baseAmount",
+    id: string,
+    label: string,
+    extra: Record<string, unknown> = {},
+  ) => (
+    <Controller
+      name={name}
+      control={control}
+      render={({ field: { ref, ...field } }) => (
+        <TextField
+          {...field}
+          inputRef={ref}
+          id={id}
+          label={label}
+          fullWidth
+          error={!!errors[name]}
+          helperText={errors[name]?.message}
+          {...extra}
+        />
+      )}
+    />
+  );
+
   return (
     <>
-      <Dialog
+      <FormDialog
         open={open}
-        onClose={submitting ? undefined : onClose}
-        fullWidth
+        title={mode === "revise" ? "Revise salary" : "Set salary"}
+        submitLabel="Save"
+        submitting={submitting}
+        error={serverError && !serverError.field ? serverError.message : null}
+        onClose={onClose}
+        onSubmit={submit}
         maxWidth="sm"
-        aria-labelledby="salary-dialog-title"
       >
-        <form noValidate onSubmit={submit}>
-          <DialogTitle id="salary-dialog-title">
-            {mode === "revise" ? "Revise salary" : "Set salary"}
-          </DialogTitle>
-          <DialogContent>
-            <Box sx={{ display: "grid", gap: 2, pt: 1 }}>
-              {serverError && !serverError.field && (
-                <Alert severity="error">{serverError.message}</Alert>
+        <Group id="salary-group-amount" title="Amount">
+          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
+            <Controller
+              name="currency"
+              control={control}
+              render={({ field: { ref, ...field } }) => (
+                <TextField
+                  {...field}
+                  inputRef={ref}
+                  id="salary-currency"
+                  select
+                  label="Currency"
+                  fullWidth
+                  error={!!errors.currency}
+                  helperText={errors.currency?.message}
+                  slotProps={{ select: { native: true }, inputLabel: { shrink: true } }}
+                >
+                  <option value="" />
+                  {CURRENCIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.code} - {c.name}
+                    </option>
+                  ))}
+                </TextField>
               )}
+            />
+            {textField("baseAmount", "salary-baseAmount", "Base salary", {
+              slotProps: { htmlInput: { inputMode: "decimal" } },
+            })}
+          </Box>
 
-              <Box
-                sx={{
-                  display: "grid",
-                  gap: 2,
-                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-                }}
-              >
-                <Controller
-                  name="currency"
-                  control={control}
-                  render={({ field: { ref, ...field } }) => (
-                    <TextField
-                      {...field}
-                      inputRef={ref}
-                      id="salary-currency"
-                      select
-                      label="Currency"
-                      fullWidth
-                      error={!!errors.currency}
-                      helperText={errors.currency?.message}
-                      slotProps={{
-                        select: { native: true },
-                        inputLabel: { shrink: true },
-                      }}
-                    >
-                      <option value="" />
-                      {CURRENCIES.map((c) => (
-                        <option key={c.code} value={c.code}>
-                          {c.code} - {c.name}
-                        </option>
-                      ))}
-                    </TextField>
-                  )}
-                />
-                <Controller
-                  name="effectiveDate"
-                  control={control}
-                  render={({ field: { ref, ...field } }) => (
-                    <TextField
-                      {...field}
-                      inputRef={ref}
-                      id="salary-effectiveDate"
-                      type="date"
-                      label="Effective date"
-                      fullWidth
-                      error={!!errors.effectiveDate}
-                      helperText={errors.effectiveDate?.message}
-                      slotProps={{
-                        inputLabel: { shrink: true },
-                        htmlInput: { min: minDate },
-                      }}
-                    />
-                  )}
-                />
-              </Box>
-
+          {fields.map((item, index) => (
+            <Box
+              key={item.id}
+              sx={{
+                display: "grid",
+                gap: 1,
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "9rem 1fr 8rem auto" },
+                alignItems: "start",
+              }}
+            >
               <Controller
-                name="reason"
+                name={`extras.${index}.type`}
                 control={control}
                 render={({ field: { ref, ...field } }) => (
                   <TextField
                     {...field}
                     inputRef={ref}
-                    id="salary-reason"
-                    label="Reason"
-                    multiline
-                    minRows={2}
-                    fullWidth
-                    error={!!errors.reason}
-                    helperText={errors.reason?.message}
+                    id={`salary-extra-${index}-type`}
+                    select
+                    label="Component type"
+                    slotProps={{ select: { native: true } }}
+                  >
+                    {EXTRA_TYPES.map((t) => (
+                      <option key={t} value={t}>
+                        {TYPE_LABELS[t]}
+                      </option>
+                    ))}
+                  </TextField>
+                )}
+              />
+              <Controller
+                name={`extras.${index}.name`}
+                control={control}
+                render={({ field: { ref, ...field } }) => (
+                  <TextField
+                    {...field}
+                    inputRef={ref}
+                    id={`salary-extra-${index}-name`}
+                    label="Component name"
+                    error={!!errors.extras?.[index]?.name}
+                    helperText={errors.extras?.[index]?.name?.message}
                   />
                 )}
               />
-
               <Controller
-                name="baseAmount"
+                name={`extras.${index}.amount`}
                 control={control}
                 render={({ field: { ref, ...field } }) => (
                   <TextField
                     {...field}
                     inputRef={ref}
-                    id="salary-baseAmount"
-                    label="Base salary"
-                    fullWidth
-                    error={!!errors.baseAmount}
-                    helperText={errors.baseAmount?.message}
+                    id={`salary-extra-${index}-amount`}
+                    label="Component amount"
+                    error={!!errors.extras?.[index]?.amount}
+                    helperText={errors.extras?.[index]?.amount?.message}
                     slotProps={{ htmlInput: { inputMode: "decimal" } }}
                   />
                 )}
               />
-
-              {fields.map((item, index) => (
-                <Box
-                  key={item.id}
-                  sx={{
-                    display: "grid",
-                    gap: 1,
-                    gridTemplateColumns: {
-                      xs: "1fr 1fr",
-                      sm: "9rem 1fr 8rem auto",
-                    },
-                    alignItems: "start",
-                  }}
-                >
-                  <Controller
-                    name={`extras.${index}.type`}
-                    control={control}
-                    render={({ field: { ref, ...field } }) => (
-                      <TextField
-                        {...field}
-                        inputRef={ref}
-                        id={`salary-extra-${index}-type`}
-                        select
-                        label="Component type"
-                        slotProps={{ select: { native: true } }}
-                      >
-                        {EXTRA_TYPES.map((t) => (
-                          <option key={t} value={t}>
-                            {TYPE_LABELS[t]}
-                          </option>
-                        ))}
-                      </TextField>
-                    )}
-                  />
-                  <Controller
-                    name={`extras.${index}.name`}
-                    control={control}
-                    render={({ field: { ref, ...field } }) => (
-                      <TextField
-                        {...field}
-                        inputRef={ref}
-                        id={`salary-extra-${index}-name`}
-                        label="Component name"
-                        error={!!errors.extras?.[index]?.name}
-                        helperText={errors.extras?.[index]?.name?.message}
-                      />
-                    )}
-                  />
-                  <Controller
-                    name={`extras.${index}.amount`}
-                    control={control}
-                    render={({ field: { ref, ...field } }) => (
-                      <TextField
-                        {...field}
-                        inputRef={ref}
-                        id={`salary-extra-${index}-amount`}
-                        label="Component amount"
-                        error={!!errors.extras?.[index]?.amount}
-                        helperText={errors.extras?.[index]?.amount?.message}
-                        slotProps={{ htmlInput: { inputMode: "decimal" } }}
-                      />
-                    )}
-                  />
-                  <Button
-                    onClick={() => remove(index)}
-                    disabled={submitting}
-                    sx={{ mt: 1 }}
-                  >
-                    Remove
-                  </Button>
-                </Box>
-              ))}
-
-              <Box>
-                <Button
-                  onClick={() =>
-                    append({ type: "ALLOWANCE", name: "", amount: "" })
-                  }
-                  disabled={submitting || fields.length >= MAX_EXTRAS}
-                >
-                  Add component
-                </Button>
-              </Box>
-
-              <Box
-                data-testid="salary-totals"
-                sx={{
-                  display: "grid",
-                  gap: 0.5,
-                  p: 2,
-                  bgcolor: "action.hover",
-                  borderRadius: 1,
-                }}
-              >
-                {(
-                  [
-                    ["Gross", totals?.gross],
-                    ["Deductions", totals?.deductions],
-                    ["Net", totals?.net],
-                  ] as const
-                ).map(([label, amount]) => (
-                  <Box
-                    key={label}
-                    sx={{ display: "flex", justifyContent: "space-between" }}
-                  >
-                    <Typography
-                      component="span"
-                      sx={{ fontWeight: label === "Net" ? 600 : undefined }}
-                    >
-                      {label}
-                    </Typography>
-                    <Typography
-                      component="span"
-                      sx={{ fontWeight: label === "Net" ? 600 : undefined }}
-                    >
-                      {amount ? money(amount) : "—"}
-                    </Typography>
-                  </Box>
-                ))}
-              </Box>
+              <Button onClick={() => remove(index)} disabled={submitting} color="inherit" sx={{ mt: 0.5 }}>
+                Remove
+              </Button>
             </Box>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={onClose} disabled={submitting}>
-              Cancel
+          ))}
+
+          <Box>
+            <Button
+              onClick={() => append({ type: "ALLOWANCE", name: "", amount: "" })}
+              disabled={submitting || fields.length >= MAX_EXTRAS}
+            >
+              Add component
             </Button>
-            <Button type="submit" variant="contained" disabled={submitting}>
-              {submitting ? "Saving…" : "Save"}
-            </Button>
-          </DialogActions>
-        </form>
-      </Dialog>
+          </Box>
+
+          {currencyChanged && (
+            <Alert severity="warning">
+              Currency changes from {current!.currency} to {values.currency}; amounts are not converted.
+            </Alert>
+          )}
+
+          <Box
+            data-testid="salary-totals"
+            sx={{ display: "grid", gap: 0.5, p: 2, bgcolor: "action.hover", borderRadius: 1 }}
+          >
+            {(
+              [
+                ["Gross", totals?.gross],
+                ["Deductions", totals?.deductions],
+                ["Net", totals?.net],
+              ] as const
+            ).map(([label, amount]) => (
+              <Box key={label} sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography component="span" sx={{ fontWeight: label === "Net" ? 600 : undefined }}>
+                  {label}
+                </Typography>
+                <Typography
+                  component="span"
+                  sx={{ fontWeight: label === "Net" ? 600 : undefined, fontVariantNumeric: "tabular-nums" }}
+                >
+                  {amount ? money(amount) : "—"}
+                </Typography>
+              </Box>
+            ))}
+          </Box>
+        </Group>
+
+        <Group id="salary-group-when" title="When and why">
+          {textField("effectiveDate", "salary-effectiveDate", "Effective date", {
+            type: "date",
+            slotProps: { inputLabel: { shrink: true }, htmlInput: { min: minDate } },
+          })}
+          {textField("reason", "salary-reason", "Reason", {
+            multiline: true,
+            minRows: 2,
+            ...(mode === "initial" && { helperText: errors.reason?.message ?? "Optional" }),
+          })}
+        </Group>
+      </FormDialog>
 
       <ConfirmDialog
         open={pending !== null}

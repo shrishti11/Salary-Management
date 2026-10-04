@@ -7,9 +7,13 @@ interface PageHeaderProps {
   subtitle?: string;
   breadcrumbs?: { label: string; to?: string }[];
   action?: ReactNode;
+  /** Rendered before the title block, e.g. an avatar. */
+  leading?: ReactNode;
+  /** Rendered inline after the title, e.g. a status chip. */
+  titleAdornment?: ReactNode;
 }
 
-export default function PageHeader({ title, subtitle, breadcrumbs, action }: PageHeaderProps) {
+export default function PageHeader({ title, subtitle, breadcrumbs, action, leading, titleAdornment }: PageHeaderProps) {
   return (
     <Box sx={{ mb: 3 }}>
       {breadcrumbs && (
@@ -24,9 +28,15 @@ export default function PageHeader({ title, subtitle, breadcrumbs, action }: Pag
         </Breadcrumbs>
       )}
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
-        <Box>
-          <Typography variant="h4" component="h1">{title}</Typography>
-          {subtitle && <Typography color="text.secondary">{subtitle}</Typography>}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, minWidth: 0 }}>
+          {leading}
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+              <Typography variant="h4" component="h1">{title}</Typography>
+              {titleAdornment}
+            </Box>
+            {subtitle && <Typography color="text.secondary">{subtitle}</Typography>}
+          </Box>
         </Box>
         {action}
       </Box>

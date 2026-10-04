@@ -1,13 +1,10 @@
 import { render, screen, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import type { SalaryOverview } from "~/lib/salaries-api";
 
 import CompensationSection from "./CompensationSection";
 import { makeSalary } from "./fixtures";
-
-const noop = () => {};
 
 const scheduled = makeSalary({
   id: "s3",
@@ -49,68 +46,40 @@ const populated: SalaryOverview = {
 
 function renderSection(
   result: Parameters<typeof CompensationSection>[0]["result"],
-  props = {},
+  props: Partial<Parameters<typeof CompensationSection>[0]> = {},
 ) {
-  const handlers = { onSetSalary: vi.fn(), onReviseSalary: vi.fn() };
-  render(
-    <CompensationSection
-      result={result}
-      employeeActive
-      {...handlers}
-      {...props}
-    />,
-  );
-  return handlers;
+  return render(<CompensationSection result={result} employeeActive {...props} />);
 }
+
+const empty = { current: null, scheduled: null, history: [] };
 
 describe("CompensationSection", () => {
   it("renders nothing on 403", () => {
-    const { container } = render(
-      <CompensationSection
-        result={{ ok: false, status: 403, message: "Forbidden" }}
-        employeeActive
-        onSetSalary={noop}
-        onReviseSalary={noop}
-      />,
-    );
+    const { container } = renderSection({ ok: false, status: 403, message: "Forbidden" });
     expect(container).toBeEmptyDOMElement();
   });
 
   it("shows an error alert on other failures", () => {
     renderSection({ ok: false, status: 500, message: "boom" });
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Could not load compensation.",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("Could not load compensation.");
   });
 
-  it("empty history: set salary button calls handler", async () => {
-    const handlers = renderSection({
-      ok: true,
-      data: { current: null, scheduled: null, history: [] },
-    });
+  it("empty history: explains there is no salary and offers no buttons (the page header owns the action)", () => {
+    renderSection({ ok: true, data: empty });
     expect(screen.getByText("No salary recorded yet.")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Set salary" }));
-    expect(handlers.onSetSalary).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Use Set salary to add the first salary record.")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
-  it("empty history for an inactive employee has no button but a note", () => {
-    renderSection(
-      { ok: true, data: { current: null, scheduled: null, history: [] } },
-      { employeeActive: false },
-    );
-    expect(
-      screen.queryByRole("button", { name: "Set salary" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Inactive employees cannot receive salary changes."),
-    ).toBeInTheDocument();
+  it("empty history for an inactive employee shows the inactive note instead of the hint", () => {
+    renderSection({ ok: true, data: empty }, { employeeActive: false });
+    expect(screen.getByText("Inactive employees cannot receive salary changes.")).toBeInTheDocument();
+    expect(screen.queryByText("Use Set salary to add the first salary record.")).not.toBeInTheDocument();
   });
 
-  it("populated: shows the current card, components, totals and revise button", async () => {
-    const handlers = renderSection({ ok: true, data: populated });
-    expect(
-      screen.getByRole("heading", { name: "Compensation" }),
-    ).toBeInTheDocument();
+  it("populated: shows the current card with components and totals, and no buttons", () => {
+    renderSection({ ok: true, data: populated });
+    expect(screen.getByRole("heading", { name: "Current salary" })).toBeInTheDocument();
     const card = screen.getByTestId("current-salary");
     expect(within(card).getByText("Annual review")).toBeInTheDocument();
     expect(within(card).getByText("Housing")).toBeInTheDocument();
@@ -118,30 +87,21 @@ describe("CompensationSection", () => {
     expect(within(card).getByText("$5,500.00")).toBeInTheDocument();
     expect(within(card).getAllByText("$700.00")).toHaveLength(2);
     expect(within(card).getByText("$4,800.00")).toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Revise salary" }),
-    );
-    expect(handlers.onReviseSalary).toHaveBeenCalledTimes(1);
+    expect(within(card).getByText("Net")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("shows the scheduled alert with the record currency", () => {
     renderSection({ ok: true, data: populated });
-    expect(
-      screen.getByText(/Scheduled change effective 2027-01-01: net ₹6,000\.00/),
-    ).toBeInTheDocument();
+    expect(screen.getByText(/Scheduled change effective 2027-01-01: net ₹6,000\.00/)).toBeInTheDocument();
   });
 
-  it("hides revise for inactive employees", () => {
+  it("shows the inactive note for an inactive employee with history", () => {
     renderSection({ ok: true, data: populated }, { employeeActive: false });
-    expect(
-      screen.queryByRole("button", { name: "Revise salary" }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Inactive employees cannot receive salary changes."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Inactive employees cannot receive salary changes.")).toBeInTheDocument();
   });
 
-  it("history lists rows in given order with change cells", () => {
+  it("history lists rows newest first with change cells", () => {
     renderSection({ ok: true, data: populated });
     const table = screen.getByRole("table", { name: "Salary history" });
     const rows = within(table).getAllByRole("row").slice(1);
@@ -156,42 +116,20 @@ describe("CompensationSection", () => {
     expect(within(rows[2]!).getByText("Previous")).toBeInTheDocument();
   });
 
+  it("orders history newest first even when given out of order", () => {
+    renderSection({ ok: true, data: { ...populated, history: [previous, dropped, scheduled, current] } });
+    const rows = within(screen.getByRole("table", { name: "Salary history" })).getAllByRole("row").slice(1);
+    expect(rows.map((row) => row.textContent?.slice(0, 10))).toEqual([
+      "2027-01-01",
+      "2026-01-01",
+      "2025-01-01",
+      "2024-01-01",
+    ]);
+  });
+
   it("handles no current salary with scheduled changes", () => {
-    renderSection({
-      ok: true,
-      data: { current: null, scheduled, history: [scheduled] },
-    });
-    expect(
-      screen.getByText(
-        "No current salary yet. Scheduled changes are listed below.",
-      ),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("table", { name: "Salary history" }),
-    ).toBeInTheDocument();
-  });
-
-  it("offers revise (not set) when the only record is scheduled", async () => {
-    const handlers = renderSection({
-      ok: true,
-      data: { current: null, scheduled, history: [scheduled] },
-    });
-    expect(
-      screen.queryByRole("button", { name: "Set salary" }),
-    ).not.toBeInTheDocument();
-    await userEvent.click(
-      screen.getByRole("button", { name: "Revise salary" }),
-    );
-    expect(handlers.onReviseSalary).toHaveBeenCalledTimes(1);
-  });
-
-  it("hides revise for an inactive employee with only a scheduled record", () => {
-    renderSection(
-      { ok: true, data: { current: null, scheduled, history: [scheduled] } },
-      { employeeActive: false },
-    );
-    expect(
-      screen.queryByRole("button", { name: "Revise salary" }),
-    ).not.toBeInTheDocument();
+    renderSection({ ok: true, data: { current: null, scheduled, history: [scheduled] } });
+    expect(screen.getByText("No current salary yet. Scheduled changes are listed below.")).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Salary history" })).toBeInTheDocument();
   });
 });

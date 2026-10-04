@@ -23,4 +23,17 @@ describe("PageHeader", () => {
     expect(screen.queryByRole("link", { name: "Ada" })).toBeNull();
     expect(screen.getByText("Engineer")).toBeInTheDocument();
   });
+
+  it("renders a leading element and a title adornment beside the title", async () => {
+    const router = createMemoryRouter([
+      {
+        path: "/",
+        element: <PageHeader title="Ada" leading={<span>AL</span>} titleAdornment={<span>Active</span>} />,
+      },
+    ]);
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent("Ada");
+    expect(screen.getByText("AL")).toBeInTheDocument();
+    expect(screen.getByText("Active")).toBeInTheDocument();
+  });
 });
