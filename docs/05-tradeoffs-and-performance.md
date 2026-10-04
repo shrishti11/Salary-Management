@@ -7,14 +7,14 @@
 | Money | Decimal(14,2) per component, totals per currency | Convert to one currency | No honest conversion without a rate source; mixed totals would mislead. |
 | Employee ID | Postgres sequence, `EMP-` + 5 digits | Typed by user, or app-side max+1 | Typed IDs are error-prone; max+1 races under concurrent creates. A sequence cannot collide. Gaps are fine. |
 | Demo data | One idempotent endpoint that tops up to exactly 10,000 | Seed script run by hand, or 10k/20k/30k options | One click, never grows, safe to double click (advisory lock, one transaction). |
-| Seed data | Pure deterministic generator, then `createMany` batches | Row-by-row inserts | The generator is unit-tested without a database; batching loads 10,000 employees and about 55,000 salary rows in about 8 s. Ids are random so reseeding can never collide. |
+| Seed data | Pure deterministic generator, then `createMany` batches | Row-by-row inserts | The generator is unit-tested without a database; batching loads 10,000 employees and about 22,000 salary records (72,000 components) in about 8 s. Ids are random so reseeding can never collide. |
 | Seed role | ADMIN only | HR too | It is a bulk write. HR can see status but not trigger it. |
 | Employees list | Reuses the current-salary directory endpoint | Separate list plus lookups | One query shape for list, search and export. |
 | Sort by effective date | Sorted in memory for the matching ids | SQL window function | Simple, and fast enough at 10,000 (below). Revisit past about 100,000. |
 | CSV | Streamed through a frontend route, formula-safe | Direct link to the API | Works whenever the session cookie works; names starting with `=`, `+`, `-`, `@` cannot run as spreadsheet formulas. |
 
 ## Performance at 10,000 employees
-Measured locally (Postgres in Docker, 10,006 employees, about 55,000 salary records), single request, warm:
+Measured locally (Postgres in Docker, 10,006 employees, about 22,600 salary records), single request, warm:
 
 | Request | Time |
 |---|---|
