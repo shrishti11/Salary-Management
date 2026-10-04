@@ -147,7 +147,7 @@ describe("row shape", () => {
     });
     expect(Object.keys(row).sort()).toEqual(["current", "employee", "hasScheduled"]);
     expect(Object.keys(row.employee).sort()).toEqual(
-      ["country", "department", "email", "employeeCode", "firstName", "id", "lastName", "status"],
+      ["country", "department", "designation", "email", "employeeCode", "firstName", "id", "joiningDate", "lastName", "status"],
     );
     expect(row.employee.department).toEqual({ id: deptA, name: `Dir A ${SUFFIX}` });
   });
@@ -229,5 +229,23 @@ describe("validation", () => {
     { page: 0 },
   ])("400 for %j", async (query) => {
     expect((await list(query)).status).toBe(400);
+  });
+});
+
+describe("designation and joining date", () => {
+  it("returns designation and joiningDate on each row", async () => {
+    const res = await list({ status: "ALL" });
+    const emp = (res.body.data as Row[])[0]!.employee;
+    expect(typeof emp.designation).toBe("string");
+    expect(emp.joiningDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it("sorts by joiningDate", async () => {
+    await prisma.employee.update({ where: { id: ids["004"]! }, data: { joiningDate: date("2010-05-05") } });
+    const asc = await list({ status: "ALL", sortBy: "joiningDate", sortOrder: "asc" });
+    expect(asc.status).toBe(200);
+    const dates = (asc.body.data as Row[]).map((r) => r.employee.joiningDate as string);
+    expect(dates[0]).toBe("2010-05-05");
+    expect(dates).toEqual([...dates].sort());
   });
 });

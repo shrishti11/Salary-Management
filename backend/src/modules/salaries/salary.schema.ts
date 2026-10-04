@@ -55,7 +55,7 @@ export type CreateSalaryInput = z.infer<typeof createSalarySchema>;
 export const employeeIdParamSchema = z.object({ id: z.uuid() });
 export const salaryParamsSchema = z.object({ id: z.uuid(), salaryId: z.uuid() });
 
-export const DIRECTORY_SORT_FIELDS = ["name", "employeeCode", "department", "country", "effectiveDate"] as const;
+export const DIRECTORY_SORT_FIELDS = ["name", "employeeCode", "department", "country", "joiningDate", "effectiveDate"] as const;
 export type DirectorySortField = (typeof DIRECTORY_SORT_FIELDS)[number];
 
 export const listDirectoryQuerySchema = z
