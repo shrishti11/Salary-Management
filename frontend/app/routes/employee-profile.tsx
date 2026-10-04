@@ -175,7 +175,7 @@ export default function EmployeeProfile() {
         title={fullName}
         action={
           <Box sx={{ display: "flex", gap: 1 }}>
-            <Button component={Link} to={`/employees/${employee.id}/edit`} variant="outlined">
+            <Button component={Link} to={`/employees/${employee.id}?edit=1`} variant="outlined">
               Edit
             </Button>
             {employee.status === "ACTIVE" ? (

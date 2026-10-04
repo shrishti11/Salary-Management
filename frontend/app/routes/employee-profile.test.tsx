@@ -85,7 +85,7 @@ describe("employee profile page", () => {
     expect(screen.getByText("2024-01-15")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Back to employees/ })).toHaveAttribute("href", "/employees");
-    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/employees/e1/edit");
+    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/employees/e1?edit=1");
     expect(screen.getByText("No salary recorded yet.")).toBeInTheDocument();
   });
 
@@ -220,7 +220,7 @@ describe("employee profile page", () => {
 
     expect(await screen.findByRole("heading", { name: "Asha Rao" })).toBeInTheDocument();
     expect(screen.getByText("Inactive")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/employees/e1/edit");
+    expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute("href", "/employees/e1?edit=1");
   });
 });
 

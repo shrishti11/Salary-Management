@@ -12,21 +12,16 @@ describe("route config", () => {
     expect(layoutEntry?.children?.some((c) => c.path === "dashboard")).toBe(true);
   });
 
-  it("registers the employee routes under the authenticated layout", async () => {
+  it("registers employees, profile, analytics, and redirects for retired pages", async () => {
     const config = await routes;
-    const layoutEntry = config.find((r) => r.file === `${AUTHENTICATED_ROUTE_ID}.tsx`);
-    const paths = layoutEntry?.children?.map((c) => c.path);
-
+    const layout = config.find((r) => r.file === `${AUTHENTICATED_ROUTE_ID}.tsx`);
+    const paths = layout?.children?.map((c) => c.path);
     expect(paths).toEqual(
-      expect.arrayContaining(["employees", "employees/new", "employees/:id", "employees/:id/edit"]),
+      expect.arrayContaining(["dashboard", "employees", "employees/:id", "analytics", "salaries", "employees/new", "employees/:id/edit"]),
     );
-  });
-
-  it("registers the salary directory under the authenticated layout", async () => {
-    const config = await routes;
-    const layoutEntry = config.find((r) => r.file === `${AUTHENTICATED_ROUTE_ID}.tsx`);
-
-    expect(layoutEntry?.children?.some((c) => c.path === "salaries" && c.file === "routes/salaries.tsx")).toBe(true);
+    expect(layout?.children?.find((c) => c.path === "salaries")?.file).toBe("routes/salaries-redirect.tsx");
+    expect(layout?.children?.find((c) => c.path === "employees/new")?.file).toBe("routes/employee-new-redirect.tsx");
+    expect(layout?.children?.find((c) => c.path === "employees/:id/edit")?.file).toBe("routes/employee-edit-redirect.tsx");
   });
 
   it("registers analytics under the authenticated layout", async () => {
