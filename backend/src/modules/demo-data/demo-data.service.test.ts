@@ -75,4 +75,33 @@ describe("seedDemoData", () => {
       await prisma.employee.deleteMany({ where });
     }
   });
+
+  it("reseeds: replaces only the demo rows with a fresh set, leaving other employees alone", async () => {
+    const domain = { target: 15, emailDomain: `reset-${SUFFIX}.example` };
+    const dept = await prisma.department.create({ data: { name: `Reset Dept ${SUFFIX}` } });
+    const keeper = await prisma.employee.create({
+      data: {
+        employeeCode: `KEEP-${SUFFIX}`, firstName: "Keep", lastName: "Me", email: `keep-${SUFFIX}@example.com`, departmentId: dept.id,
+        designation: "Engineer", country: "IN", joiningDate: new Date("2024-01-15T00:00:00.000Z"),
+      },
+    });
+    const where = { email: { endsWith: `@${domain.emailDomain}` } };
+    try {
+      await seedDemoData(userId, domain);
+      const before = new Set((await prisma.employee.findMany({ where, select: { id: true } })).map((e) => e.id));
+
+      const result = await seedDemoData(userId, { ...domain, reset: true });
+      expect(result).toMatchObject({ created: true, count: 15 });
+      const after = await prisma.employee.findMany({ where, select: { id: true } });
+      expect(after).toHaveLength(15);
+      expect(after.some((e) => before.has(e.id))).toBe(false);
+      expect(await prisma.employee.findUnique({ where: { id: keeper.id } })).not.toBeNull();
+      expect(await prisma.salaryRecord.count({ where: { employee: where } })).toBeGreaterThanOrEqual(15);
+    } finally {
+      await prisma.salaryRecord.deleteMany({ where: { employee: where } });
+      await prisma.employee.deleteMany({ where });
+      await prisma.employee.delete({ where: { id: keeper.id } });
+      await prisma.department.delete({ where: { id: dept.id } });
+    }
+  });
 });

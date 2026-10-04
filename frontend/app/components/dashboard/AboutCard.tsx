@@ -10,7 +10,7 @@ const PAGES: { to?: string; name: string; gist: string }[] = [
 
 export default function AboutCard() {
   return (
-    <Paper variant="outlined" sx={{ p: 2, mt: 2 }}>
+    <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
       <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
         About this app
       </Typography>

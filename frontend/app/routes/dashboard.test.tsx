@@ -53,6 +53,7 @@ function renderDashboard(
   { role = "HR_MANAGER", demo = NOT_SEEDED, demoStatus = 200, seed }: { role?: string; demo?: unknown; demoStatus?: number; seed?: () => Response } = {},
 ) {
   const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("/api/demo-data/reseed")) return json({ created: true, count: 10000, target: 10000, seeded: true, durationMs: 1 });
     if (url.includes("/api/demo-data/seed")) return seed ? seed() : json({ created: true, count: 10000, target: 10000, seeded: true, durationMs: 1 });
     if (url.includes("/api/demo-data")) return json(demo, demoStatus);
     void init;
@@ -177,6 +178,13 @@ describe("Dashboard route", () => {
       expect(within(card).getByText("Employee profile")).toBeInTheDocument();
       expect(within(card).getByText(/never converted/)).toBeInTheDocument();
     });
+
+    it("sits at the top, above the stat tiles", async () => {
+      renderDashboard(() => json(dashboard));
+      const about = await screen.findByRole("heading", { name: "About this app" });
+      const tile = screen.getByText("Active employees");
+      expect(about.compareDocumentPosition(tile) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
   });
 
   describe("Demo data", () => {
@@ -195,10 +203,26 @@ describe("Dashboard route", () => {
       expect(await screen.findByText("Forbidden")).toBeInTheDocument();
     });
 
-    it("shows a quiet status line, and no button, once the data is loaded", async () => {
+    it("once loaded shows the status and a Reseed button, with no Load button", async () => {
       renderDashboard(() => json(dashboard), { role: "ADMIN", demo: SEEDED });
       expect(await screen.findByText("Demo data loaded: 10,000 employees with salary history.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Reseed demo data" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Load demo data" })).not.toBeInTheDocument();
+    });
+
+    it("reseeds only after confirming, and Cancel does nothing", async () => {
+      const fetchMock = renderDashboard(() => json(dashboard), { role: "ADMIN", demo: SEEDED });
+      const reseedCalls = () => fetchMock.mock.calls.filter(([url]) => String(url).includes("/api/demo-data/reseed")).length;
+
+      await userEvent.click(await screen.findByRole("button", { name: "Reseed demo data" }));
+      expect(screen.getByText(/Employees you added yourself are kept/)).toBeInTheDocument();
+      await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(reseedCalls()).toBe(0);
+
+      await userEvent.click(await screen.findByRole("button", { name: "Reseed demo data" })); // after the dialog finishes closing
+      await userEvent.click(screen.getByRole("button", { name: "Reseed" }));
+      await waitFor(() => expect(reseedCalls()).toBe(1));
+      expect(await screen.findByText("Reseeded 10,000 demo employees")).toBeInTheDocument();
     });
 
     it("hides the card from non-admins", async () => {

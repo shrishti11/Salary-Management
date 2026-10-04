@@ -1,22 +1,53 @@
 import { Box, Button, CircularProgress, Paper, Typography } from "@mui/material";
+import { useState } from "react";
 
+import ConfirmDialog from "~/components/common/ConfirmDialog";
 import type { DemoDataStatus } from "~/lib/demo-data-api";
 
 interface Props {
   status: DemoDataStatus;
   seeding: boolean;
   onSeed: () => void;
+  onReseed: () => void;
 }
 
 const number = new Intl.NumberFormat("en-US");
 
-/** Admin-only. One button loads the whole demo company; once loaded it shrinks to a quiet status line. */
-export default function DemoDataCard({ status, seeding, onSeed }: Props) {
-  if (status.seeded && !seeding) {
+/** Admin-only. Loads the demo company with one click; once loaded it offers a confirmed "Reseed". */
+export default function DemoDataCard({ status, seeding, onSeed, onReseed }: Props) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const target = number.format(status.target);
+
+  if (seeding) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Demo data loaded: {number.format(status.count)} employees with salary history.
-      </Typography>
+      <Paper variant="outlined" sx={{ p: 2, mb: 2, display: "flex", gap: 1.5, alignItems: "center" }}>
+        <CircularProgress size={18} />
+        <Typography>Loading {target} demo employees… this takes a few seconds.</Typography>
+      </Paper>
+    );
+  }
+
+  if (status.seeded) {
+    return (
+      <Paper variant="outlined" sx={{ p: 2, mb: 2, display: "flex", gap: 2, alignItems: "center", flexWrap: "wrap" }}>
+        <Typography variant="body2" color="text.secondary" sx={{ flex: 1, minWidth: 240 }}>
+          Demo data loaded: {number.format(status.count)} employees with salary history.
+        </Typography>
+        <Button variant="outlined" size="small" onClick={() => setConfirmOpen(true)}>
+          Reseed demo data
+        </Button>
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Reseed demo data?"
+          message={`This deletes the demo employees and their salary history, then creates a fresh set of ${target}. Employees you added yourself are kept.`}
+          confirmLabel="Reseed"
+          onCancel={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            onReseed();
+          }}
+        />
+      </Paper>
     );
   }
 
@@ -27,18 +58,12 @@ export default function DemoDataCard({ status, seeding, onSeed }: Props) {
           Load demo data
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Creates {number.format(status.target)} employees across departments and countries, with salary history, scheduled
-          revisions and a few employees without a salary. Safe to click again: it never adds more than{" "}
-          {number.format(status.target)}.
+          Creates {target} employees across departments and countries, each with salary history and some with scheduled
+          revisions. Safe to click again: it never adds more than {target}.
         </Typography>
       </Box>
-      <Button
-        variant="contained"
-        onClick={onSeed}
-        disabled={seeding}
-        startIcon={seeding ? <CircularProgress size={16} color="inherit" /> : undefined}
-      >
-        {seeding ? "Loading… this takes a few seconds" : "Load demo data"}
+      <Button variant="contained" onClick={onSeed}>
+        Load demo data
       </Button>
     </Paper>
   );

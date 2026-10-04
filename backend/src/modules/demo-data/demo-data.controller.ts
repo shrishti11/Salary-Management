@@ -10,3 +10,7 @@ export async function seedDemoDataHandler(request: Request, response: Response) 
   const result = await seedDemoData(request.user!.id);
   response.status(result.created ? 201 : 200).json(result);
 }
+
+export async function reseedDemoDataHandler(request: Request, response: Response) {
+  response.status(201).json(await seedDemoData(request.user!.id, { reset: true }));
+}

@@ -73,6 +73,8 @@ Salaries use the same roles and live under `/api/employees/:id/salaries`. Record
 - `GET /api/demo-data` (ADMIN, HR_MANAGER) -> `{ seeded, count, target }` (target 10,000; demo rows are the employees with an `@demo.acme.example` email).
 - `POST /api/demo-data/seed` (ADMIN) -> 201 `{ created: true, count, target, durationMs }`, or 200 `{ created: false, ... }` when the target is already reached. One transaction guarded by a Postgres advisory lock, so double clicks cannot seed twice. It tops up to exactly 10,000 and never adds more.
 
+- `POST /api/demo-data/reseed` (ADMIN) -> 201, same body: deletes the demo employees (only the `@demo.acme.example` domain) and their salary history, then seeds a fresh 10,000. CLI: `bun run db:seed:demo -- --reset`.
+
 ### Dashboard and analytics
 
 All under ADMIN and HR_MANAGER (401 / 403 otherwise). Read-only Postgres aggregations; every monetary aggregate is per currency and currencies are never combined. Money values are decimal strings. A salary counts as current if it has the latest `effectiveDate <= asOf` (UTC); scheduled records and employees without a current salary are excluded from money metrics. Unknown query params and invalid values return 400 `VALIDATION_ERROR`.

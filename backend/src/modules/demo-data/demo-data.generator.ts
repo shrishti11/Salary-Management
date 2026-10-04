@@ -107,8 +107,8 @@ const utcDate = (ms: number) => new Date(Math.floor(ms / DAY) * DAY);
 const money = (value: number) => value.toFixed(2);
 
 /**
- * Builds an in-memory company: one employee per employee code, with salary history, components, a few
- * scheduled (future) revisions and some employees without any salary. Pure, so it is fast to test.
+ * Builds an in-memory company: one employee per employee code, every one with a salary history and components,
+ * plus a few scheduled (future) revisions, so the dashboard has nothing to flag. Pure, so it is fast to test.
  */
 export function generateDemoData(
   employeeCodes: string[],
@@ -155,8 +155,6 @@ export function generateDemoData(
       joiningDate: new Date(joiningMs),
       status: random.chance(0.9) ? "ACTIVE" : "INACTIVE",
     });
-
-    if (random.chance(0.03)) continue; // no salary yet
 
     const dates = [joiningMs];
     const extra = random.int(0, 3);

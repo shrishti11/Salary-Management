@@ -80,6 +80,12 @@ async function main() {
     { employeeCode: "EMP-0003", currency: "GBP", records: [
       { date: "2019-11-20", reason: "Initial salary", base: "55000.00", extras: [["ALLOWANCE", "Transport", "2400.00"]] },
     ] },
+    { employeeCode: "EMP-0004", currency: "EUR", records: [
+      { date: "2022-01-10", reason: "Initial salary", base: "62000.00", extras: [["BONUS", "Signing", "3000.00"]] },
+    ] },
+    { employeeCode: "EMP-0005", currency: "SGD", records: [
+      { date: "2018-05-02", reason: "Initial salary", base: "90000.00", extras: [] },
+    ] },
   ] as const;
   for (const { employeeCode, currency, records } of sampleSalaries) {
     const employee = await prisma.employee.findUnique({ where: { employeeCode } });

@@ -18,3 +18,7 @@ export function getDemoDataStatus(request: Request) {
 export function seedDemoData(request: Request) {
   return apiCall<DemoDataSeedResult>(request, "/api/demo-data/seed", { method: "POST" });
 }
+
+export function reseedDemoData(request: Request) {
+  return apiCall<DemoDataSeedResult>(request, "/api/demo-data/reseed", { method: "POST" });
+}

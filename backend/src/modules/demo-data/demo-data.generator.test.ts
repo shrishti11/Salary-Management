@@ -50,13 +50,10 @@ describe("generateDemoData", () => {
     expect(inactive).toBeLessThan(0.15);
   });
 
-  it("leaves a few employees without salary and gives the rest a first record on the joining date", () => {
-    const withRecords = new Set(data.records.map((r) => r.employeeId));
-    const without = data.employees.filter((e) => !withRecords.has(e.id)).length / 2000;
-    expect(without).toBeGreaterThan(0.01);
-    expect(without).toBeLessThan(0.06);
-    for (const e of data.employees.filter((x) => withRecords.has(x.id))) {
+  it("gives every employee a salary history starting on the joining date", () => {
+    for (const e of data.employees) {
       const mine = data.records.filter((r) => r.employeeId === e.id).sort((a, b) => +a.effectiveDate - +b.effectiveDate);
+      expect(mine.length).toBeGreaterThan(0);
       expect(mine[0]!.effectiveDate.getTime()).toBe(e.joiningDate.getTime());
       expect(mine[0]!.reason).toBe("Initial salary");
       expect(new Set(mine.map((r) => +r.effectiveDate)).size).toBe(mine.length); // @@unique(employeeId, effectiveDate)

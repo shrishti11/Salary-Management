@@ -1,4 +1,4 @@
-// Seeds the 10,000-employee demo company (same code as the dashboard's "Load demo data" button).
+// Seeds the 10,000-employee demo company (same code as the dashboard button). `--reset` replaces the existing demo set.
 import { prisma } from "../src/lib/prisma.ts";
 import { seedDemoData } from "../src/modules/demo-data/demo-data.service.ts";
 
@@ -8,7 +8,8 @@ if (!admin) {
   process.exit(1);
 }
 
-const result = await seedDemoData(admin.id);
+const reset = process.argv.includes("--reset");
+const result = await seedDemoData(admin.id, { reset });
 console.log(
   result.created
     ? `Seeded demo data: ${result.count} employees in ${(result.durationMs / 1000).toFixed(1)}s`

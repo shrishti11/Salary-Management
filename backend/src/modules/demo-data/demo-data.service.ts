@@ -14,6 +14,8 @@ export interface DemoDataOptions {
   target?: number;
   emailDomain?: string;
   now?: Date;
+  /** Delete the existing demo employees (and their salary history) first, then seed a fresh set. */
+  reset?: boolean;
 }
 
 function chunks<T>(items: T[], size: number): T[][] {
@@ -30,15 +32,22 @@ export async function getDemoDataStatus({ target = DEMO_TARGET, emailDomain = DE
 /**
  * Tops the database up to exactly `target` (default 10,000) demo employees (with departments, salary history and components).
  * Idempotent: once the target is reached it does nothing, so repeated clicks never create more.
+ * With `reset` it first removes the demo employees, so it always ends with a fresh set of exactly `target`.
  */
 export async function seedDemoData(
   createdById: string,
-  { target = DEMO_TARGET, emailDomain = DEMO_EMAIL_DOMAIN, now = new Date() }: DemoDataOptions = {},
+  { target = DEMO_TARGET, emailDomain = DEMO_EMAIL_DOMAIN, now = new Date(), reset = false }: DemoDataOptions = {},
 ) {
   const started = Date.now();
   return prisma.$transaction(
     async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(${SEED_LOCK_ID})`;
+
+      if (reset) {
+        // Only rows on the demo email domain: employees added by hand are never touched.
+        await tx.salaryRecord.deleteMany({ where: { employee: demoWhere(emailDomain) } }); // components cascade
+        await tx.employee.deleteMany({ where: demoWhere(emailDomain) });
+      }
 
       const existing = await tx.employee.count({ where: demoWhere(emailDomain) });
       if (existing >= target) return { created: false, count: existing, target, durationMs: Date.now() - started };

@@ -30,6 +30,7 @@ describe("demo-data routes", () => {
   it("requires a session", async () => {
     expect((await request(app).get("/api/demo-data")).status).toBe(401);
     expect((await request(app).post("/api/demo-data/seed")).status).toBe(401);
+    expect((await request(app).post("/api/demo-data/reseed")).status).toBe(401);
   });
 
   it("lets HR managers read the status but only admins seed", async () => {
@@ -37,6 +38,7 @@ describe("demo-data routes", () => {
     expect(status.status).toBe(200);
     expect(status.body).toEqual({ seeded: expect.any(Boolean), count: expect.any(Number), target: 10000 });
     expect((await hr.post("/api/demo-data/seed")).status).toBe(403);
+    expect((await hr.post("/api/demo-data/reseed")).status).toBe(403);
   });
 
   it("seeds only the demo target: an already-seeded company is a no-op over HTTP", async () => {

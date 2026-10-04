@@ -8,7 +8,7 @@ import MetricCard from "~/components/analytics/MetricCard";
 import RecentActivity from "~/components/analytics/RecentActivity";
 import PageHeader from "~/components/layout/PageHeader";
 import { getDashboard } from "~/lib/analytics-api";
-import { getDemoDataStatus, seedDemoData } from "~/lib/demo-data-api";
+import { getDemoDataStatus, reseedDemoData, seedDemoData } from "~/lib/demo-data-api";
 import { formatDate } from "~/lib/format-date";
 import { AUTHENTICATED_ROUTE_ID } from "~/lib/route-ids";
 import { useFetcherResult } from "~/lib/use-fetcher-result";
@@ -22,10 +22,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 }
 
 export async function action({ request }: Route.ActionArgs) {
-  const result = await seedDemoData(request);
+  const form = await request.formData();
+  const reseed = form.get("intent") === "reseed";
+  const result = await (reseed ? reseedDemoData(request) : seedDemoData(request));
   if (!result.ok) return { error: result.message };
   const { created, count } = result.data;
-  return { message: created ? `Loaded ${count.toLocaleString("en-US")} demo employees` : "Demo data is already loaded" };
+  const loaded = `${count.toLocaleString("en-US")} demo employees`;
+  return { message: !created ? "Demo data is already loaded" : reseed ? `Reseeded ${loaded}` : `Loaded ${loaded}` };
 }
 
 export function ErrorBoundary() {
@@ -60,8 +63,14 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader title="Dashboard" subtitle={`As of ${formatDate(asOf)}`} />
+      <AboutCard />
       {demo && role === "ADMIN" && (
-        <DemoDataCard status={demo} seeding={seeding} onSeed={() => seedFetcher.submit({}, { method: "post" })} />
+        <DemoDataCard
+          status={demo}
+          seeding={seeding}
+          onSeed={() => seedFetcher.submit({ intent: "seed" }, { method: "post" })}
+          onReseed={() => seedFetcher.submit({ intent: "reseed" }, { method: "post" })}
+        />
       )}
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, mb: 2 }}>
         <MetricCard label="Active employees" value={String(metrics.activeEmployees)} />
@@ -85,7 +94,6 @@ export default function Dashboard() {
         </Paper>
         <RecentActivity recentEmployees={recentEmployees} recentRevisions={recentRevisions} />
       </Box>
-      <AboutCard />
     </>
   );
 }
