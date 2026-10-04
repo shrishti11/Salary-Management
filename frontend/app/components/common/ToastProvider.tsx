@@ -1,4 +1,4 @@
-import { Alert, Button, Snackbar } from "@mui/material";
+import { Alert, Button, Snackbar, type SnackbarCloseReason } from "@mui/material";
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
@@ -18,16 +18,35 @@ export function useToast(): ToastApi {
 }
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<Toast | null>(null);
-  const success = useCallback((text: string, action?: ToastAction) => setToast({ severity: "success", text, action }), []);
-  const error = useCallback((text: string) => setToast({ severity: "error", text }), []);
+  // The last toast stays in state after closing so the Snackbar exit transition
+  // still renders its content; `open` alone drives visibility. `key` remounts the
+  // Snackbar for each new toast so a replacement restarts the auto-hide timer.
+  const [toast, setToast] = useState<(Toast & { key: number }) | null>(null);
+  const [open, setOpen] = useState(false);
+  const show = useCallback((next: Toast) => {
+    setToast((prev) => ({ ...next, key: (prev?.key ?? 0) + 1 }));
+    setOpen(true);
+  }, []);
+  const success = useCallback((text: string, action?: ToastAction) => show({ severity: "success", text, action }), [show]);
+  const error = useCallback((text: string) => show({ severity: "error", text }), [show]);
   const api = useMemo(() => ({ success, error }), [success, error]);
-  const close = () => setToast(null);
+  const close = () => setOpen(false);
+  const handleSnackbarClose = (_event: unknown, reason?: SnackbarCloseReason) => {
+    // A click elsewhere (e.g. on the page behind) should not swallow the toast and its action.
+    if (reason === "clickaway") return;
+    close();
+  };
 
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <Snackbar open={toast !== null} autoHideDuration={5000} onClose={close} anchorOrigin={{ vertical: "bottom", horizontal: "center" }}>
+      <Snackbar
+        key={toast?.key}
+        open={open}
+        autoHideDuration={5000}
+        onClose={handleSnackbarClose}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
         {toast ? (
           <Alert
             severity={toast.severity}
@@ -36,7 +55,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             variant="filled"
             action={
               toast.action ? (
-                <Button component={Link} to={toast.action.to} size="small" color="inherit">
+                <Button component={Link} to={toast.action.to} onClick={close} size="small" color="inherit">
                   {toast.action.label}
                 </Button>
               ) : undefined
