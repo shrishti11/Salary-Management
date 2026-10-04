@@ -61,8 +61,16 @@ type ActionResult =
   | { intent: "status" | "unknown"; error: string }
   | { intent: "status"; message: string };
 
+const UNSUPPORTED: ActionResult = { intent: "unknown", error: "Unsupported action" };
+
 export async function action({ request }: Route.ActionArgs): Promise<ActionResult> {
-  const body = (await request.json()) as ActionBody;
+  let body: ActionBody | null;
+  try {
+    body = (await request.json()) as ActionBody | null;
+  } catch {
+    return UNSUPPORTED;
+  }
+  if (!body || typeof body !== "object") return UNSUPPORTED;
 
   if (body.intent === "create") {
     const { intent: _intent, ...values } = body;
@@ -81,7 +89,7 @@ export async function action({ request }: Route.ActionArgs): Promise<ActionResul
     return { intent: "status", message: status === "ACTIVE" ? "Employee activated" : "Employee deactivated" };
   }
 
-  return { intent: "unknown", error: "Unsupported action" };
+  return UNSUPPORTED;
 }
 
 export function ErrorBoundary() {

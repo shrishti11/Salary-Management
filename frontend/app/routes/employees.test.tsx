@@ -397,4 +397,17 @@ describe("employees route: action", () => {
     backendWith(() => json(emptyList));
     expect(await post({ intent: "status", employeeId: "e1", status: "FIRED" })).toEqual({ intent: "status", error: "Invalid status" });
   });
+
+  it("rejects malformed JSON and a null body without calling the backend", async () => {
+    const fetchMock = backendWith(() => json(emptyList));
+    const raw = (body: string) =>
+      action({
+        request: new Request("http://localhost:3000/employees", { method: "POST", body, headers: { "Content-Type": "application/json" } }),
+        params: {},
+        context: {},
+      } as Parameters<typeof action>[0]);
+    expect(await raw("{not json")).toEqual({ intent: "unknown", error: "Unsupported action" });
+    expect(await raw("null")).toEqual({ intent: "unknown", error: "Unsupported action" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
 });
