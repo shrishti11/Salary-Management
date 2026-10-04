@@ -27,7 +27,8 @@ async function fillValid() {
   await userEvent.type(d.getByLabelText("Work email"), "asha@example.com");
   await userEvent.selectOptions(d.getByLabelText("Department"), "d1");
   await userEvent.type(d.getByLabelText("Designation"), "Engineer");
-  await userEvent.selectOptions(d.getByLabelText("Country"), "IN");
+  await userEvent.type(d.getByRole("combobox", { name: "Country" }), "Ind");
+  await userEvent.click(await screen.findByRole("option", { name: "India" }));
   await userEvent.type(d.getByLabelText("Joining date"), "2024-01-15");
 }
 
@@ -50,6 +51,8 @@ describe("EmployeeFormDialog", () => {
     expect(await screen.findByText("Employee ID is required")).toBeInTheDocument();
     expect(screen.getByText("First name is required")).toBeInTheDocument();
     expect(screen.getByText("Select a department")).toBeInTheDocument();
+    expect(screen.getByText("Select a country")).toBeInTheDocument();
+    expect(dialog().getByRole("combobox", { name: "Country" })).toHaveAttribute("aria-invalid", "true");
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
@@ -109,6 +112,14 @@ describe("EmployeeFormDialog", () => {
     expect(dialog().getByLabelText("Employee ID")).toBeDisabled();
     expect(dialog().getByLabelText("Employee ID")).toHaveValue("EMP-1");
     expect(dialog().getByLabelText("First name")).toHaveValue("Asha");
+    expect(dialog().getByRole("combobox", { name: "Country" })).toHaveValue("India");
+  });
+
+  it("filters countries as you type in the searchable Country field", async () => {
+    setup();
+    await userEvent.type(dialog().getByRole("combobox", { name: "Country" }), "zeal");
+    const options = within(await screen.findByRole("listbox")).getAllByRole("option");
+    expect(options.map((o) => o.textContent)).toEqual(["New Zealand"]);
   });
 
   it("calls onClose when Cancel is clicked", async () => {

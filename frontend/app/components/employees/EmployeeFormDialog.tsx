@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Box, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, TextField, Typography } from "@mui/material";
 import { useEffect } from "react";
 import { Controller, useForm, type FieldPath } from "react-hook-form";
 
@@ -84,8 +84,37 @@ export default function EmployeeFormDialog({
     />
   );
 
+  const countryField = (
+    <Controller
+      name="country"
+      control={control}
+      render={({ field: { ref, value, onChange, onBlur } }) => (
+        <Autocomplete
+          id="employee-country"
+          options={COUNTRIES}
+          getOptionLabel={(option) => option.name}
+          isOptionEqualToValue={(option, selected) => option.code === selected.code}
+          value={COUNTRIES.find((country) => country.code === value) ?? null}
+          onChange={(_event, option) => onChange(option?.code ?? "")}
+          onBlur={onBlur}
+          autoHighlight
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              inputRef={ref}
+              label="Country"
+              fullWidth
+              error={!!errors.country}
+              helperText={errors.country?.message}
+            />
+          )}
+        />
+      )}
+    />
+  );
+
   const select = (
-    name: "departmentId" | "country",
+    name: "departmentId",
     label: string,
     options: { value: string; label: string }[],
   ) => (
@@ -149,11 +178,7 @@ export default function EmployeeFormDialog({
           departments.map((department) => ({ value: department.id, label: department.name })),
         )}
         {text("designation", "Designation")}
-        {select(
-          "country",
-          "Country",
-          COUNTRIES.map((country) => ({ value: country.code, label: country.name })),
-        )}
+        {countryField}
         {text("joiningDate", "Joining date", {
           type: "date",
           slotProps: { inputLabel: { shrink: true }, htmlInput: { max: localToday() } },

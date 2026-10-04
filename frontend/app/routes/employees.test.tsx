@@ -255,7 +255,8 @@ async function fillEmployee() {
   await userEvent.type(d.getByLabelText("Work email"), "asha@example.com");
   await userEvent.selectOptions(d.getByLabelText("Department"), DEPT_ID);
   await userEvent.type(d.getByLabelText("Designation"), "Engineer");
-  await userEvent.selectOptions(d.getByLabelText("Country"), "IN");
+  await userEvent.type(d.getByRole("combobox", { name: "Country" }), "Ind");
+  await userEvent.click(await screen.findByRole("option", { name: "India" }));
   await userEvent.type(d.getByLabelText("Joining date"), "2024-01-15");
 }
 
