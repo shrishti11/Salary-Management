@@ -6,16 +6,12 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 
 import type { Route } from "./+types/root";
 import "./app.css";
-
-const theme = createTheme({
-  typography: {
-    fontFamily: '"Inter", ui-sans-serif, system-ui, sans-serif',
-  },
-});
+import theme from "./theme";
+import { ToastProvider } from "./components/common/ToastProvider";
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -52,7 +48,9 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Outlet />
+      <ToastProvider>
+        <Outlet />
+      </ToastProvider>
     </ThemeProvider>
   );
 }
