@@ -44,7 +44,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 export function ErrorBoundary() {
   return (
     <>
-      <PageHeader title="Salary analytics" />
+      <PageHeader title="Analytics" />
       <Alert
         severity="error"
         action={
@@ -110,7 +110,7 @@ export default function Analytics() {
 
   return (
     <>
-      <PageHeader title="Salary analytics" />
+      <PageHeader title="Analytics" subtitle="Company-wide compensation, per currency" />
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
         Amounts are per period as entered. Currencies are never combined{currency ? `; showing ${currency}` : ""}.
       </Typography>

@@ -1,16 +1,18 @@
 import {
   isRouteErrorResponse,
+  Link,
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
 } from "react-router";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { Box, Button, CssBaseline, ThemeProvider } from "@mui/material";
 
 import type { Route } from "./+types/root";
 import "./app.css";
 import theme from "./theme";
+import EmptyState from "./components/common/EmptyState";
 import { ToastProvider } from "./components/common/ToastProvider";
 
 export const links: Route.LinksFunction = () => [
@@ -56,12 +58,12 @@ export default function App() {
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
-  let message = "Oops!";
+  let message = "Something went wrong";
   let details = "An unexpected error occurred.";
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "404" : "Error";
+    message = error.status === 404 ? "Page not found" : "Something went wrong";
     details =
       error.status === 404
         ? "The requested page could not be found."
@@ -72,14 +74,21 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main style={{ paddingTop: 64, padding: 16 }}>
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", bgcolor: "background.default", p: 2 }}>
+      <EmptyState
+        title={message}
+        description={details}
+        action={
+          <Button variant="contained" component={Link} to="/dashboard">
+            Go to dashboard
+          </Button>
+        }
+      />
       {stack && (
         <pre style={{ width: "100%", padding: 16, overflowX: "auto" }}>
           <code>{stack}</code>
         </pre>
       )}
-    </main>
+    </Box>
   );
 }

@@ -13,12 +13,12 @@ interface Props {
 
 export default function ChartCard({ title, subtitle, result, empty, children }: Props) {
   return (
-    <Paper variant="outlined" sx={{ p: 2, height: "100%" }}>
+    <Paper sx={{ p: 3, height: "100%" }}>
       <Typography variant="h6" component="h2">
         {title}
       </Typography>
       {subtitle && (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
           {subtitle}
         </Typography>
       )}

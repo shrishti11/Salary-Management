@@ -1,4 +1,4 @@
-import { Box, Button, TextField } from "@mui/material";
+import { Button, Paper, TextField } from "@mui/material";
 
 import { hasActiveAnalyticsFilters, isRealDate, type AnalyticsParams, type FilterOptions } from "~/lib/analytics-api";
 import { COUNTRIES } from "~/lib/countries";
@@ -25,7 +25,7 @@ export default function AnalyticsFilters({ params, effectiveCurrency, options, o
   const today = new Date().toISOString().slice(0, 10);
 
   return (
-    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2, alignItems: "center" }}>
+    <Paper sx={{ display: "flex", flexWrap: "wrap", gap: 2, p: 2, mb: 2, alignItems: "center" }}>
       <TextField id="analytics-department" select label="Department" size="small" value={params.departmentId} onChange={(e) => onChange({ departmentId: e.target.value })} slotProps={NATIVE_SELECT} sx={{ minWidth: 160 }}>
         <option value="">All</option>
         {options.departments.map((d) => (
@@ -73,6 +73,6 @@ export default function AnalyticsFilters({ params, effectiveCurrency, options, o
       <Button onClick={onClear} disabled={!hasActiveAnalyticsFilters(params)}>
         Reset filters
       </Button>
-    </Box>
+    </Paper>
   );
 }
