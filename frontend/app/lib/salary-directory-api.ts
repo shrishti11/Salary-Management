@@ -1,7 +1,7 @@
 import { COUNTRIES } from "~/lib/countries";
 import { PAGE_SIZES, apiCall, type EmployeeStatus, type Pagination, type SortOrder } from "~/lib/employees-api";
 
-export const SALARY_SORT_FIELDS = ["name", "employeeCode", "department", "country", "effectiveDate"] as const;
+export const SALARY_SORT_FIELDS = ["name", "employeeCode", "department", "country", "joiningDate", "effectiveDate"] as const;
 export type SalarySortField = (typeof SALARY_SORT_FIELDS)[number];
 export type SalaryStatusFilter = EmployeeStatus | "ALL";
 export type SalaryPresence = "" | "with" | "without";
@@ -15,6 +15,8 @@ export interface SalaryDirectoryRow {
     email: string;
     department: { id: string; name: string };
     country: string;
+    designation: string;
+    joiningDate: string;
     status: EmployeeStatus;
   };
   current: null | {

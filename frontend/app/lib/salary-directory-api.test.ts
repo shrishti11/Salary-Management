@@ -86,4 +86,10 @@ describe("listSalaryDirectory", () => {
     vi.stubGlobal("fetch", vi.fn(async () => json({ error: { message: "boom" } }, 500)));
     expect(await listSalaryDirectory(req(), DEFAULT_SALARY_LIST_PARAMS)).toMatchObject({ ok: false, status: 500, message: "boom" });
   });
+
+  it("accepts joiningDate as a sort field", () => {
+    const params = parseSalaryListParams(new URLSearchParams("sortBy=joiningDate&sortOrder=desc"));
+    expect(params.sortBy).toBe("joiningDate");
+    expect(toSalarySearchParams(params).get("sortBy")).toBe("joiningDate");
+  });
 });

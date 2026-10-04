@@ -15,6 +15,8 @@ const row = (overrides: Partial<SalaryDirectoryRow> = {}, employee: Partial<Sala
     email: "asha@example.com",
     department: { id: "d1", name: "Engineering" },
     country: "IN",
+    designation: "Engineer",
+    joiningDate: "2024-01-15",
     status: "ACTIVE",
     ...employee,
   },
