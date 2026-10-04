@@ -1,17 +1,10 @@
-import { Alert, Box, Button, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
-import { Link, useLoaderData, useRouteLoaderData } from "react-router";
+import { Alert, Box, Button, Link as MuiLink, Paper, Typography } from "@mui/material";
+import { Link, useLoaderData } from "react-router";
 
-import BarChartCard from "~/components/analytics/BarChartCard";
-import ChartCard from "~/components/analytics/ChartCard";
 import MetricCard from "~/components/analytics/MetricCard";
-import MoneyList from "~/components/analytics/MoneyList";
 import RecentActivity from "~/components/analytics/RecentActivity";
 import PageHeader from "~/components/layout/PageHeader";
 import { getDashboard } from "~/lib/analytics-api";
-import { COUNTRIES } from "~/lib/countries";
-import { formatMoney } from "~/lib/currencies";
-import { AUTHENTICATED_ROUTE_ID } from "~/lib/route-ids";
-import type { loader as authenticatedLoader } from "./authenticated";
 import type { Route } from "./+types/dashboard";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -38,123 +31,33 @@ export function ErrorBoundary() {
   );
 }
 
-const countryName = (code: string) => COUNTRIES.find((c) => c.code === code)?.name ?? code;
-const GROUP_SUBTITLE = "Active employees; each currency shown separately";
-
 export default function Dashboard() {
-  const auth = useRouteLoaderData<typeof authenticatedLoader>(AUTHENTICATED_ROUTE_ID);
-
-  if (!auth) {
-    throw new Error("Dashboard must render inside the authenticated layout route");
-  }
-
-  const { asOf, metrics, departments, countries, recentEmployees, recentRevisions } = useLoaderData<typeof loader>();
+  const { asOf, metrics, recentEmployees, recentRevisions } = useLoaderData<typeof loader>();
 
   return (
     <>
-      <PageHeader title="Dashboard" />
-      <p>
-        Signed in as {auth.user.name} ({auth.user.role}).
-      </p>
-      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(5, 1fr)" }, mb: 2 }}>
-        <MetricCard label="Total employees" value={String(metrics.totalEmployees)} />
+      <PageHeader title="Dashboard" subtitle={`As of ${asOf}`} />
+      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, mb: 2 }}>
         <MetricCard label="Active employees" value={String(metrics.activeEmployees)} />
         <MetricCard label="Departments" value={String(metrics.departmentCount)} />
         <MetricCard label="Countries" value={String(metrics.countryCount)} />
         <MetricCard label="Without salary" value={String(metrics.withoutSalary)} hint="No current salary" />
       </Box>
 
-      <Box sx={{ mb: 2 }}>
-        <ChartCard
-          title="Salary overview"
-          subtitle={`Active employees · gross per period · as of ${asOf}`}
-          empty={metrics.currencies.length === 0 ? "No salary data yet" : undefined}
-        >
-          <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(auto-fit, minmax(220px, 1fr))" } }}>
-            {metrics.currencies.map((c) => (
-              <Paper key={c.currency} variant="outlined" sx={{ p: 2 }}>
-                <Typography variant="subtitle1" component="h3">
-                  <strong>{c.currency}</strong>
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {c.count} {c.count === 1 ? "employee" : "employees"}
-                </Typography>
-                <Typography variant="body2">Total {formatMoney(c.total, c.currency)}</Typography>
-                <Typography variant="body2">Average {formatMoney(c.average, c.currency)}</Typography>
-                <Typography variant="body2">Median {formatMoney(c.median, c.currency)}</Typography>
-              </Paper>
-            ))}
-          </Box>
-        </ChartCard>
-      </Box>
-
-      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, "& > *": { minWidth: 0 }, mb: 2 }}>
-        <ChartCard title="By department" subtitle={GROUP_SUBTITLE} empty={departments.length === 0 ? "No departments yet" : undefined}>
-          <BarChartCard
-            ariaLabel="Headcount by department"
-            valueLabel="Employees"
-            data={departments.map((d) => ({ label: d.name, value: d.headcount }))}
-          />
-          <TableContainer>
-<Table size="small" aria-label="Departments">
-            <TableHead>
-              <TableRow>
-                <TableCell>Department</TableCell>
-                <TableCell>Employees</TableCell>
-                <TableCell>Salary</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {departments.map((d) => (
-                <TableRow key={d.id}>
-                  <TableCell>{d.name}</TableCell>
-                  <TableCell>{d.headcount}</TableCell>
-                  <TableCell>
-                    <MoneyList lines={d.currencies} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-</TableContainer>
-        </ChartCard>
-        <ChartCard title="By country" subtitle={GROUP_SUBTITLE} empty={countries.length === 0 ? "No countries yet" : undefined}>
-          <BarChartCard
-            ariaLabel="Headcount by country"
-            valueLabel="Employees"
-            data={countries.map((c) => ({ label: countryName(c.country), value: c.headcount }))}
-          />
-          <TableContainer>
-<Table size="small" aria-label="Countries">
-            <TableHead>
-              <TableRow>
-                <TableCell>Country</TableCell>
-                <TableCell>Employees</TableCell>
-                <TableCell>Salary</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {countries.map((c) => (
-                <TableRow key={c.country}>
-                  <TableCell>{countryName(c.country)}</TableCell>
-                  <TableCell>{c.headcount}</TableCell>
-                  <TableCell>
-                    <MoneyList lines={c.currencies} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-</TableContainer>
-        </ChartCard>
-      </Box>
-
-      <RecentActivity recentEmployees={recentEmployees} recentRevisions={recentRevisions} />
-
-      <Box sx={{ mt: 2 }}>
-        <Button variant="contained" component={Link} to="/analytics">
-          Open salary analytics
-        </Button>
+      <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "minmax(0, 1fr)", md: "repeat(2, minmax(0, 1fr))" }, alignItems: "start", "& > *": { minWidth: 0 } }}>
+        <Paper variant="outlined" sx={{ p: 2 }}>
+          <Typography variant="subtitle1" component="h2" sx={{ mb: 1 }}>
+            Attention
+          </Typography>
+          {metrics.withoutSalary > 0 ? (
+            <MuiLink component={Link} to="/employees?salary=without">
+              {metrics.withoutSalary} {metrics.withoutSalary === 1 ? "employee has" : "employees have"} no salary
+            </MuiLink>
+          ) : (
+            <Typography color="text.secondary">Nothing needs your attention.</Typography>
+          )}
+        </Paper>
+        <RecentActivity recentEmployees={recentEmployees} recentRevisions={recentRevisions} />
       </Box>
     </>
   );
