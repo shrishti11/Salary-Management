@@ -204,6 +204,8 @@ export default function Employees() {
   const hasFilters = hasActiveFilters(params);
   const loading = navigation.state === "loading";
   const total = pagination.total;
+  // Exports exactly what the list shows (filters and sort, not the page).
+  const exportQuery = toSalarySearchParams({ ...params, page: 1, pageSize: 20 }).toString();
 
   return (
     <>
@@ -211,9 +213,19 @@ export default function Employees() {
         title="Employees"
         subtitle={`${total} ${total === 1 ? "person" : "people"}`}
         action={
-          <Button variant="contained" onClick={openAdd}>
-            Add employee
-          </Button>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="outlined"
+              component="a"
+              href={`/employees/export${exportQuery ? `?${exportQuery}` : ""}`}
+              disabled={total === 0}
+            >
+              Export CSV
+            </Button>
+            <Button variant="contained" onClick={openAdd}>
+              Add employee
+            </Button>
+          </Box>
         }
       />
 

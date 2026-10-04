@@ -139,6 +139,15 @@ describe("employees route: list", () => {
     });
   });
 
+  it("exports exactly the current filters and sort, never the page", async () => {
+    backendWith(twoRows);
+    renderAt("/employees?status=ALL&country=IN&sortBy=joiningDate&sortOrder=desc&page=1&pageSize=50");
+    const link = await screen.findByRole("link", { name: "Export CSV" });
+    const href = new URL(link.getAttribute("href")!, "http://x");
+    expect(href.pathname).toBe("/employees/export");
+    expect(Object.fromEntries(href.searchParams)).toEqual({ status: "ALL", country: "IN", sortBy: "joiningDate", sortOrder: "desc" });
+  });
+
   it("sorts by joining date when the Joined header is clicked", async () => {
     backendWith(twoRows);
     const router = renderAt("/employees");
