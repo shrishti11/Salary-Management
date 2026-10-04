@@ -3,6 +3,7 @@ import { Autocomplete, Box, TextField, Typography } from "@mui/material";
 import { useEffect } from "react";
 import { Controller, useForm, type FieldPath } from "react-hook-form";
 
+import DateField from "~/components/common/DateField";
 import FormDialog from "~/components/common/FormDialog";
 import { COUNTRIES } from "~/lib/countries";
 import { employeeFormSchema, localToday, type EmployeeFormValues } from "~/lib/employee-form";
@@ -64,12 +65,14 @@ export default function EmployeeFormDialog({
     }
   }, [open, serverError, setError]);
 
-  const text = (name: FieldPath<EmployeeFormValues>, label: string, extra: Record<string, unknown> = {}) => (
+  const text = (name: FieldPath<EmployeeFormValues>, label: string, extra: Record<string, unknown> = {}) => {
+    const Field = extra.type === "date" ? DateField : TextField;
+    return (
     <Controller
       name={name}
       control={control}
       render={({ field: { ref, ...field } }) => (
-        <TextField
+        <Field
           {...field}
           inputRef={ref}
           id={`employee-${name}`}
@@ -82,6 +85,7 @@ export default function EmployeeFormDialog({
       )}
     />
   );
+  };
 
   const countryField = (
     <Controller

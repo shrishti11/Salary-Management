@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 
 import ConfirmDialog from "~/components/common/ConfirmDialog";
+import DateField from "~/components/common/DateField";
 import FormDialog from "~/components/common/FormDialog";
 import { CURRENCIES, formatMoney } from "~/lib/currencies";
 import { formatDate } from "~/lib/format-date";
@@ -135,12 +136,14 @@ export default function SalaryFormDialog({
     id: string,
     label: string,
     extra: Record<string, unknown> = {},
-  ) => (
+  ) => {
+    const Field = extra.type === "date" ? DateField : TextField;
+    return (
     <Controller
       name={name}
       control={control}
       render={({ field: { ref, ...field } }) => (
-        <TextField
+        <Field
           {...field}
           inputRef={ref}
           id={id}
@@ -153,6 +156,7 @@ export default function SalaryFormDialog({
       )}
     />
   );
+  };
 
   return (
     <>
