@@ -410,6 +410,36 @@ describe("employee profile salary dialog from the URL", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("the header Set salary button opens the dialog through ?salary=initial", async () => {
+    const user = userEvent.setup();
+    backend(emptyOverview);
+    const router = renderAt("/employees/e1?tab=x");
+
+    await user.click(await screen.findByRole("button", { name: "Set salary" }));
+    expect(await screen.findByRole("dialog", { name: "Set salary" })).toBeInTheDocument();
+    expect(search(router).get("salary")).toBe("initial");
+    expect(search(router).get("tab")).toBe("x");
+
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(search(router).has("salary")).toBe(false);
+
+    // Reopening after a close works again.
+    await user.click(screen.getByRole("button", { name: "Set salary" }));
+    expect(await screen.findByRole("dialog", { name: "Set salary" })).toBeInTheDocument();
+    expect(search(router).get("salary")).toBe("initial");
+  });
+
+  it("the header Revise salary button opens the dialog through ?salary=revise", async () => {
+    const user = userEvent.setup();
+    backend(populated);
+    const router = renderAt("/employees/e1");
+
+    await user.click(await screen.findByRole("button", { name: "Revise salary" }));
+    expect(await screen.findByRole("dialog", { name: "Revise salary" })).toBeInTheDocument();
+    expect(search(router).get("salary")).toBe("revise");
+  });
+
   it("opens only the edit dialog when both ?edit=1 and ?salary= are present", async () => {
     backend(populated);
     const router = renderAt("/employees/e1?edit=1&salary=revise");

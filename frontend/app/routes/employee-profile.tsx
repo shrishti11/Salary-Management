@@ -243,7 +243,19 @@ export default function EmployeeProfile() {
     }
   });
 
-  // --- Salary dialog ---
+  // --- Salary dialog (opened through ?salary=, see the effect below) ---
+  // Replace rather than push, like ?edit=1: closing strips the param with a replace, so a pushed
+  // entry would let Back reopen a dialog the user already dismissed.
+  const requestSalaryDialog = () =>
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set("salary", salaryMode);
+        return next;
+      },
+      { replace: true },
+    );
+
   const openSalaryDialog = () => {
     const latest = history[0];
     setSalaryError(null);
@@ -264,7 +276,8 @@ export default function EmployeeProfile() {
     if (searchParams.has("salary")) removeParam("salary");
   };
 
-  // `?salary=initial|revise` (from the directory) opens the dialog once; closing removes the param.
+  // `?salary=initial|revise` (from the directory, the toast or the buttons here) opens the dialog
+  // once; closing removes the param.
   // Ignored (and stripped) for unrecognised values, inactive employees, unloaded salaries, or when
   // the edit dialog is also requested: edit wins so two dialogs never open at once.
   const salaryParam = searchParams.get("salary");
@@ -327,7 +340,7 @@ export default function EmployeeProfile() {
               Edit
             </Button>
             {canChangeSalary && (
-              <Button variant="contained" onClick={openSalaryDialog}>
+              <Button variant="contained" onClick={requestSalaryDialog}>
                 {salaryMode === "revise" ? "Revise salary" : "Set salary"}
               </Button>
             )}
