@@ -1,17 +1,31 @@
 import { Alert, Box, Button, Link as MuiLink, Paper, Typography } from "@mui/material";
-import { Link, useLoaderData } from "react-router";
+import { Link, useFetcher, useLoaderData, useRouteLoaderData } from "react-router";
 
+import AboutCard from "~/components/dashboard/AboutCard";
+import DemoDataCard from "~/components/dashboard/DemoDataCard";
+import { useToast } from "~/components/common/ToastProvider";
 import MetricCard from "~/components/analytics/MetricCard";
 import RecentActivity from "~/components/analytics/RecentActivity";
 import PageHeader from "~/components/layout/PageHeader";
 import { getDashboard } from "~/lib/analytics-api";
+import { getDemoDataStatus, seedDemoData } from "~/lib/demo-data-api";
 import { formatDate } from "~/lib/format-date";
+import { AUTHENTICATED_ROUTE_ID } from "~/lib/route-ids";
+import { useFetcherResult } from "~/lib/use-fetcher-result";
 import type { Route } from "./+types/dashboard";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const result = await getDashboard(request);
+  const [result, demo] = await Promise.all([getDashboard(request), getDemoDataStatus(request)]);
   if (!result.ok) throw new Response(result.message, { status: result.status });
-  return result.data;
+  // The demo-data card is a convenience; if its status cannot be read the dashboard still works.
+  return { ...result.data, demo: demo.ok ? demo.data : null };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const result = await seedDemoData(request);
+  if (!result.ok) return { error: result.message };
+  const { created, count } = result.data;
+  return { message: created ? `Loaded ${count.toLocaleString("en-US")} demo employees` : "Demo data is already loaded" };
 }
 
 export function ErrorBoundary() {
@@ -33,11 +47,22 @@ export function ErrorBoundary() {
 }
 
 export default function Dashboard() {
-  const { asOf, metrics, recentEmployees, recentRevisions } = useLoaderData<typeof loader>();
+  const { asOf, metrics, recentEmployees, recentRevisions, demo } = useLoaderData<typeof loader>();
+  const role = (useRouteLoaderData(AUTHENTICATED_ROUTE_ID) as { user?: { role?: string } } | undefined)?.user?.role;
+  const toast = useToast();
+  const seedFetcher = useFetcher<typeof action>();
+  useFetcherResult(seedFetcher, (data) => {
+    if ("error" in data) toast.error(String(data.error));
+    else toast.success(String(data.message));
+  });
+  const seeding = seedFetcher.state !== "idle";
 
   return (
     <>
       <PageHeader title="Dashboard" subtitle={`As of ${formatDate(asOf)}`} />
+      {demo && role === "ADMIN" && (
+        <DemoDataCard status={demo} seeding={seeding} onSeed={() => seedFetcher.submit({}, { method: "post" })} />
+      )}
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", lg: "repeat(4, 1fr)" }, mb: 2 }}>
         <MetricCard label="Active employees" value={String(metrics.activeEmployees)} />
         <MetricCard label="Departments" value={String(metrics.departmentCount)} />
@@ -60,6 +85,7 @@ export default function Dashboard() {
         </Paper>
         <RecentActivity recentEmployees={recentEmployees} recentRevisions={recentRevisions} />
       </Box>
+      <AboutCard />
     </>
   );
 }

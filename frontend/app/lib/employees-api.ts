@@ -5,7 +5,7 @@ import type { EmployeeFormValues } from "~/lib/employee-form";
 
 export type EmployeeStatus = "ACTIVE" | "INACTIVE";
 export type SortOrder = "asc" | "desc";
-export const PAGE_SIZES = [10, 20, 50] as const;
+export const PAGE_SIZES = [10, 20, 50, 100] as const;
 
 export interface Department {
   id: string;

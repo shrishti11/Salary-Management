@@ -1,8 +1,12 @@
-import { render, screen, within } from "@testing-library/react";
-import { createMemoryRouter, RouterProvider } from "react-router";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createMemoryRouter, Outlet, RouterProvider } from "react-router";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import Dashboard, { ErrorBoundary, loader } from "./dashboard";
+import { ToastProvider } from "~/components/common/ToastProvider";
+import { AUTHENTICATED_ROUTE_ID } from "~/lib/route-ids";
+
+import Dashboard, { action, ErrorBoundary, loader } from "./dashboard";
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
@@ -41,21 +45,46 @@ const empty = {
   recentRevisions: [],
 };
 
-function renderDashboard(respond: () => Response) {
-  vi.stubGlobal("fetch", vi.fn(async () => respond()));
+const NOT_SEEDED = { seeded: false, count: 12, target: 10000 };
+const SEEDED = { seeded: true, count: 10000, target: 10000 };
+
+function renderDashboard(
+  respond: () => Response,
+  { role = "HR_MANAGER", demo = NOT_SEEDED, demoStatus = 200, seed }: { role?: string; demo?: unknown; demoStatus?: number; seed?: () => Response } = {},
+) {
+  const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (url.includes("/api/demo-data/seed")) return seed ? seed() : json({ created: true, count: 10000, target: 10000, seeded: true, durationMs: 1 });
+    if (url.includes("/api/demo-data")) return json(demo, demoStatus);
+    void init;
+    return respond();
+  });
+  vi.stubGlobal("fetch", fetchMock);
   const router = createMemoryRouter(
     [
       {
-        path: "dashboard",
-        loader: ({ request }) => loader({ request, params: {}, context: {} } as Parameters<typeof loader>[0]),
-        Component: Dashboard,
-        ErrorBoundary,
+        id: AUTHENTICATED_ROUTE_ID,
+        loader: () => ({ user: { id: "u1", name: "Hannah", email: "h@x.com", role } }),
+        element: (
+          <ToastProvider>
+            <Outlet />
+          </ToastProvider>
+        ),
+        children: [
+          {
+            path: "dashboard",
+            loader: ({ request }) => loader({ request, params: {}, context: {} } as Parameters<typeof loader>[0]),
+            action: ({ request }) => action({ request, params: {}, context: {} } as Parameters<typeof action>[0]),
+            Component: Dashboard,
+            ErrorBoundary,
+          },
+        ],
       },
       { path: "/login", Component: () => <div>login page</div> },
     ],
     { initialEntries: ["/dashboard"] },
   );
   render(<RouterProvider router={router} />);
+  return fetchMock;
 }
 
 afterEach(() => vi.unstubAllGlobals());
@@ -136,5 +165,52 @@ describe("Dashboard route", () => {
   it("redirects to /login on 401", async () => {
     renderDashboard(() => json({ error: { message: "Unauthorized" } }, 401));
     expect(await screen.findByText("login page")).toBeInTheDocument();
+  });
+
+  describe("About this app", () => {
+    it("lists what each page is for", async () => {
+      renderDashboard(() => json(dashboard));
+      expect(await screen.findByRole("heading", { name: "About this app" })).toBeInTheDocument();
+      const card = screen.getByRole("heading", { name: "About this app" }).parentElement as HTMLElement;
+      expect(within(card).getByRole("link", { name: "Employees" })).toHaveAttribute("href", "/employees");
+      expect(within(card).getByRole("link", { name: "Analytics" })).toHaveAttribute("href", "/analytics");
+      expect(within(card).getByText("Employee profile")).toBeInTheDocument();
+      expect(within(card).getByText(/never converted/)).toBeInTheDocument();
+    });
+  });
+
+  describe("Demo data", () => {
+    it("lets an admin load demo data with one click, then shows the loaded state", async () => {
+      const fetchMock = renderDashboard(() => json(dashboard), { role: "ADMIN" });
+      await userEvent.click(await screen.findByRole("button", { name: "Load demo data" }));
+      await waitFor(() =>
+        expect(fetchMock.mock.calls.some(([url, init]) => String(url).includes("/api/demo-data/seed") && init?.method === "POST")).toBe(true),
+      );
+      expect(await screen.findByText("Loaded 10,000 demo employees")).toBeInTheDocument();
+    });
+
+    it("shows an error toast when seeding fails", async () => {
+      renderDashboard(() => json(dashboard), { role: "ADMIN", seed: () => json({ error: { message: "Forbidden" } }, 403) });
+      await userEvent.click(await screen.findByRole("button", { name: "Load demo data" }));
+      expect(await screen.findByText("Forbidden")).toBeInTheDocument();
+    });
+
+    it("shows a quiet status line, and no button, once the data is loaded", async () => {
+      renderDashboard(() => json(dashboard), { role: "ADMIN", demo: SEEDED });
+      expect(await screen.findByText("Demo data loaded: 10,000 employees with salary history.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Load demo data" })).not.toBeInTheDocument();
+    });
+
+    it("hides the card from non-admins", async () => {
+      renderDashboard(() => json(dashboard), { role: "HR_MANAGER" });
+      await screen.findByRole("heading", { name: "Attention" });
+      expect(screen.queryByRole("button", { name: "Load demo data" })).not.toBeInTheDocument();
+    });
+
+    it("still renders the dashboard when the demo status cannot be read", async () => {
+      renderDashboard(() => json(dashboard), { role: "ADMIN", demo: { error: { message: "x" } }, demoStatus: 500 });
+      await screen.findByRole("heading", { name: "Attention" });
+      expect(screen.queryByRole("button", { name: "Load demo data" })).not.toBeInTheDocument();
+    });
   });
 });
