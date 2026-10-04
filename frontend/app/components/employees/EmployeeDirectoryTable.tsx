@@ -44,10 +44,15 @@ function SortHeader({
   sortBy,
   sortOrder,
   onSort,
-}: Pick<EmployeeDirectoryTableProps, "sortBy" | "sortOrder" | "onSort"> & { field: SalarySortField; label: string }) {
+  align,
+}: Pick<EmployeeDirectoryTableProps, "sortBy" | "sortOrder" | "onSort"> & {
+  field: SalarySortField;
+  label: string;
+  align?: "right";
+}) {
   const active = sortBy === field;
   return (
-    <TableCell sortDirection={active ? sortOrder : false}>
+    <TableCell align={align} sortDirection={active ? sortOrder : false}>
       <TableSortLabel active={active} direction={active ? sortOrder : "asc"} onClick={() => onSort(field)}>
         {label}
       </TableSortLabel>
@@ -125,7 +130,7 @@ export default function EmployeeDirectoryTable({ rows, sortBy, sortOrder, onSort
             <SortHeader field="department" label="Department" {...header} />
             <SortHeader field="country" label="Country" {...header} />
             <SortHeader field="joiningDate" label="Joined" {...header} />
-            <TableCell align="right">Current salary</TableCell>
+            <SortHeader field="effectiveDate" label="Current salary" align="right" {...header} />
             <TableCell>Status</TableCell>
             <TableCell align="right">
               <Box component="span" sx={visuallyHidden}>
@@ -159,7 +164,12 @@ export default function EmployeeDirectoryTable({ rows, sortBy, sortOrder, onSort
                 <TableCell align="right">
                   <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, flexWrap: "wrap", justifyContent: "flex-end" }}>
                     {current ? (
-                      <Money amount={current.gross} currency={current.currency} />
+                      <Box>
+                        <Money amount={current.gross} currency={current.currency} />
+                        <Typography variant="caption" color="text.secondary" component="div">
+                          since {formatDate(current.effectiveDate)}
+                        </Typography>
+                      </Box>
                     ) : (
                       <Chip size="small" label="No salary" variant="outlined" />
                     )}

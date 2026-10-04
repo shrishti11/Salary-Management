@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
-import type { SalaryDirectoryRow } from "~/lib/salary-directory-api";
+import type { SortOrder } from "~/lib/employees-api";
+import type { SalaryDirectoryRow, SalarySortField } from "~/lib/salary-directory-api";
 import EmployeeDirectoryTable from "./EmployeeDirectoryTable";
 
 const row = (overrides: Partial<SalaryDirectoryRow["employee"]> = {}, extra: Partial<SalaryDirectoryRow> = {}): SalaryDirectoryRow => ({
@@ -33,13 +34,16 @@ const row = (overrides: Partial<SalaryDirectoryRow["employee"]> = {}, extra: Par
   ...extra,
 });
 
-function renderTable(rows: SalaryDirectoryRow[], { onSort = vi.fn(), onAction = vi.fn() } = {}) {
+function renderTable(
+  rows: SalaryDirectoryRow[],
+  { onSort = vi.fn(), onAction = vi.fn(), sortBy = "name" as SalarySortField, sortOrder = "asc" as SortOrder } = {},
+) {
   const router = createMemoryRouter(
     [
       {
         path: "/employees",
         Component: () => (
-          <EmployeeDirectoryTable rows={rows} sortBy="name" sortOrder="asc" onSort={onSort} onAction={onAction} />
+          <EmployeeDirectoryTable rows={rows} sortBy={sortBy} sortOrder={sortOrder} onSort={onSort} onAction={onAction} />
         ),
       },
       { path: "/employees/:id", Component: () => <div>profile page</div> },
@@ -73,18 +77,30 @@ describe("EmployeeDirectoryTable", () => {
     expect(within(r).getByText("Revision scheduled")).toBeInTheDocument();
   });
 
-  it("sorts by name, department, country and joined, but not salary", async () => {
+  it("sorts by name, department, country, joined and salary effective date", async () => {
     const { onSort } = renderTable([row()]);
     for (const [label, field] of [
       ["Name", "name"],
       ["Department", "department"],
       ["Country", "country"],
       ["Joined", "joiningDate"],
+      ["Current salary", "effectiveDate"],
     ] as const) {
       await userEvent.click(screen.getByRole("button", { name: label }));
       expect(onSort).toHaveBeenLastCalledWith(field);
     }
-    expect(screen.queryByRole("button", { name: /Current salary/ })).not.toBeInTheDocument();
+  });
+
+  it("marks the Current salary column as sorted when sorting by effective date", () => {
+    renderTable([row()], { sortBy: "effectiveDate", sortOrder: "desc" });
+    expect(screen.getByRole("columnheader", { name: /^Current salary/ })).toHaveAttribute("aria-sort", "descending");
+    expect(screen.getByRole("columnheader", { name: /^Name/ })).not.toHaveAttribute("aria-sort");
+  });
+
+  it("shows when the current salary took effect, only when one exists", () => {
+    renderTable([row(), row({ id: "e2", firstName: "Kenji" }, { current: null })]);
+    expect(within(screen.getByRole("row", { name: /Asha Rao/ })).getByText("since Jan 1, 2026")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /Kenji Rao/ })).queryByText(/^since/)).not.toBeInTheDocument();
   });
 
   it("formats each salary in the employee's own currency", () => {
