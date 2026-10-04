@@ -1,7 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import AppLayout from "./AppLayout";
 
@@ -23,19 +23,48 @@ describe("AppLayout", () => {
     expect(screen.getByText("child content")).toBeInTheDocument();
   });
 
-  it("shows the user and a logout button in the user menu when a user is provided", async () => {
+  function renderWithUser() {
+    const logoutAction = vi.fn(() => null);
     const router = createMemoryRouter([
       {
         path: "/",
         Component: () => <AppLayout user={{ name: "Alice", role: "ADMIN" }} />,
         children: [{ index: true, Component: () => <div>child content</div> }],
       },
+      { path: "/logout", action: logoutAction, Component: () => <div>logged out</div> },
     ]);
-
     render(<RouterProvider router={router} />);
+    return { logoutAction, router };
+  }
 
+  it("exposes the user menu button as a menu trigger", async () => {
+    renderWithUser();
+    const trigger = screen.getByRole("button", { name: /Alice/ });
+    expect(trigger).toHaveAttribute("aria-haspopup", "menu");
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(trigger);
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    const menu = screen.getByRole("menu");
+    expect(trigger).toHaveAttribute("aria-controls", menu.id);
+  });
+
+  it("logs out with a POST to /logout when the Logout menu item is clicked", async () => {
+    const { logoutAction } = renderWithUser();
     await userEvent.click(screen.getByRole("button", { name: /Alice/ }));
-    expect(screen.getByRole("button", { name: "Logout" })).toHaveAttribute("type", "submit");
+    await userEvent.click(screen.getByRole("menuitem", { name: "Logout" }));
+    await waitFor(() => expect(logoutAction).toHaveBeenCalledTimes(1));
+    const [{ request }] = logoutAction.mock.calls[0] as unknown as [{ request: Request }];
+    expect(request.method).toBe("POST");
+    expect(new URL(request.url).pathname).toBe("/logout");
+  });
+
+  it("logs out when the Logout menu item is activated with the keyboard", async () => {
+    const { logoutAction } = renderWithUser();
+    await userEvent.click(screen.getByRole("button", { name: /Alice/ }));
+    const item = screen.getByRole("menuitem", { name: "Logout" });
+    await waitFor(() => expect(item).toHaveFocus());
+    await userEvent.keyboard("{Enter}");
+    await waitFor(() => expect(logoutAction).toHaveBeenCalledTimes(1));
   });
 
   it("highlights the nav section for the current path", () => {

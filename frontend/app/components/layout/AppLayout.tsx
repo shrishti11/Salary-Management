@@ -1,6 +1,6 @@
 import { Box, Button, Drawer, List, ListItemButton, ListItemText, Menu, MenuItem, Typography } from "@mui/material";
-import { useState } from "react";
-import { Form, Link, Outlet, useLocation } from "react-router";
+import { useId, useState } from "react";
+import { Link, Outlet, useLocation, useSubmit } from "react-router";
 
 const DRAWER_WIDTH = 240;
 
@@ -17,6 +17,9 @@ interface AppLayoutProps {
 export default function AppLayout({ user }: AppLayoutProps = {}) {
   const { pathname } = useLocation();
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+  const submit = useSubmit();
+  const menuId = useId();
+  const menuOpen = Boolean(anchorEl);
   return (
     <Box sx={{ display: "flex" }}>
       <Drawer
@@ -58,6 +61,9 @@ export default function AppLayout({ user }: AppLayoutProps = {}) {
             <Button
               fullWidth
               color="inherit"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              aria-controls={menuOpen ? menuId : undefined}
               onClick={(e) => setAnchorEl(e.currentTarget)}
               sx={{ justifyContent: "flex-start", textAlign: "left", textTransform: "none" }}
             >
@@ -70,13 +76,14 @@ export default function AppLayout({ user }: AppLayoutProps = {}) {
                 </Typography>
               </Box>
             </Button>
-            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={() => setAnchorEl(null)}>
-              <MenuItem disableRipple sx={{ p: 0 }}>
-                <Form method="post" action="/logout">
-                  <Button type="submit" color="inherit" sx={{ px: 2, py: 1 }}>
-                    Logout
-                  </Button>
-                </Form>
+            <Menu anchorEl={anchorEl} open={menuOpen} onClose={() => setAnchorEl(null)} slotProps={{ list: { id: menuId } }}>
+              <MenuItem
+                onClick={() => {
+                  setAnchorEl(null);
+                  submit(null, { method: "post", action: "/logout" });
+                }}
+              >
+                Logout
               </MenuItem>
             </Menu>
           </Box>
