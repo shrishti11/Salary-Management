@@ -62,9 +62,6 @@ export default function Login({ actionData }: Pick<Route.ComponentProps, "action
         <Typography variant="h5" component="h1" gutterBottom>
           Salary Management
         </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Enter your credentials to continue
-        </Typography>
 
         {actionData?.error && (
           <Alert severity="error" sx={{ mb: 2 }}>
