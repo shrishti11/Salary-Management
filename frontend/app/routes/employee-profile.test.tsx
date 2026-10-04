@@ -86,6 +86,9 @@ async function openMenuItem(user: ReturnType<typeof userEvent.setup>, name: stri
   await user.click(await screen.findByRole("menuitem", { name }));
 }
 
+/** The header's salary button (the Compensation empty state may also offer "Set salary"). */
+const headerSalaryButton = (name: "Set salary" | "Revise salary") => screen.getAllByRole("button", { name })[0]!;
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe("employee profile page", () => {
@@ -425,7 +428,7 @@ describe("employee profile salary dialog from the URL", () => {
     expect(search(router).has("salary")).toBe(false);
 
     // Reopening after a close works again.
-    await user.click(screen.getByRole("button", { name: "Set salary" }));
+    await user.click(headerSalaryButton("Set salary"));
     expect(await screen.findByRole("dialog", { name: "Set salary" })).toBeInTheDocument();
     expect(search(router).get("salary")).toBe("initial");
   });
@@ -438,6 +441,18 @@ describe("employee profile salary dialog from the URL", () => {
     await user.click(await screen.findByRole("button", { name: "Revise salary" }));
     expect(await screen.findByRole("dialog", { name: "Revise salary" })).toBeInTheDocument();
     expect(search(router).get("salary")).toBe("revise");
+  });
+
+  it("the Compensation empty state's Set salary button opens the dialog through ?salary=initial", async () => {
+    const user = userEvent.setup();
+    backend(emptyOverview);
+    const router = renderAt("/employees/e1");
+
+    await user.click(await screen.findByRole("tab", { name: "Compensation" }));
+    const panel = screen.getByRole("tabpanel", { name: "Compensation" });
+    await user.click(within(panel).getByRole("button", { name: "Set salary" }));
+    expect(await screen.findByRole("dialog", { name: "Set salary" })).toBeInTheDocument();
+    expect(search(router).get("salary")).toBe("initial");
   });
 
   it("opens only the edit dialog when both ?edit=1 and ?salary= are present", async () => {
@@ -677,7 +692,7 @@ describe("employee profile compensation", () => {
 
     await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    await user.click(screen.getByRole("button", { name: "Set salary" }));
+    await user.click(headerSalaryButton("Set salary"));
     await screen.findByRole("dialog", { name: "Set salary" });
     expect(screen.queryByText("Effective date must be after 2025-06-01")).not.toBeInTheDocument();
   });

@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import type { SalaryOverview } from "~/lib/salaries-api";
 
@@ -64,17 +65,20 @@ describe("CompensationSection", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("Could not load compensation.");
   });
 
-  it("empty history: explains there is no salary and offers no buttons (the page header owns the action)", () => {
-    renderSection({ ok: true, data: empty });
+  it("empty history: offers a Set salary button wired to the given handler", async () => {
+    const onSetSalary = vi.fn();
+    renderSection({ ok: true, data: empty }, { onSetSalary });
     expect(screen.getByText("No salary recorded yet.")).toBeInTheDocument();
-    expect(screen.getByText("Use Set salary to add the first salary record.")).toBeInTheDocument();
-    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByText("Add the first salary record for this employee.")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Set salary" }));
+    expect(onSetSalary).toHaveBeenCalledTimes(1);
   });
 
-  it("empty history for an inactive employee shows the inactive note instead of the hint", () => {
-    renderSection({ ok: true, data: empty }, { employeeActive: false });
+  it("empty history for an inactive employee shows the inactive note and no salary control", () => {
+    renderSection({ ok: true, data: empty }, { employeeActive: false, onSetSalary: vi.fn() });
     expect(screen.getByText("Inactive employees cannot receive salary changes.")).toBeInTheDocument();
-    expect(screen.queryByText("Use Set salary to add the first salary record.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Add the first salary record for this employee.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
   it("populated: shows the current card with components and totals, and no buttons", () => {

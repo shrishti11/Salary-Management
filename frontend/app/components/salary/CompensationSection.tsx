@@ -1,4 +1,4 @@
-import { Alert, Box, Chip, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
+import { Alert, Box, Button, Chip, Paper, Table, TableBody, TableCell, TableHead, TableRow, Typography } from "@mui/material";
 
 import EmptyState from "~/components/common/EmptyState";
 import Money from "~/components/common/Money";
@@ -9,6 +9,8 @@ import type { Salary, SalaryComponentType, SalaryOverview } from "~/lib/salaries
 interface CompensationSectionProps {
   result: ApiResult<SalaryOverview>;
   employeeActive: boolean;
+  /** Opens the set-salary dialog; offered from the empty state for active employees only. */
+  onSetSalary?: () => void;
 }
 
 const GROUPS: { type: SalaryComponentType; label: string }[] = [
@@ -88,7 +90,7 @@ function CurrentCard({ salary }: { salary: Salary }) {
   );
 }
 
-export default function CompensationSection({ result, employeeActive }: CompensationSectionProps) {
+export default function CompensationSection({ result, employeeActive, onSetSalary }: CompensationSectionProps) {
   if (!result.ok) {
     if (result.status === 403) return null;
     return <Alert severity="error">Could not load compensation.</Alert>;
@@ -103,7 +105,14 @@ export default function CompensationSection({ result, employeeActive }: Compensa
       <Paper component="section">
         <EmptyState
           title="No salary recorded yet."
-          description={employeeActive ? "Use Set salary to add the first salary record." : INACTIVE_NOTE}
+          description={employeeActive ? "Add the first salary record for this employee." : INACTIVE_NOTE}
+          action={
+            employeeActive && onSetSalary ? (
+              <Button variant="contained" onClick={onSetSalary}>
+                Set salary
+              </Button>
+            ) : undefined
+          }
         />
       </Paper>
     );

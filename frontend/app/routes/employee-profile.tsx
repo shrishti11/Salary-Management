@@ -411,7 +411,11 @@ export default function EmployeeProfile() {
         </Box>
       ) : (
         <Box role="tabpanel" id="profile-panel-compensation" aria-labelledby="profile-tab-compensation">
-          <CompensationSection result={salaries} employeeActive={active} />
+          <CompensationSection
+            result={salaries}
+            employeeActive={active}
+            onSetSalary={canChangeSalary ? requestSalaryDialog : undefined}
+          />
         </Box>
       )}
 
