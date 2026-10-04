@@ -8,12 +8,6 @@ export function localToday(): string {
 }
 
 export const employeeFormSchema = z.object({
-  employeeCode: z
-    .string()
-    .trim()
-    .min(1, "Employee ID is required")
-    .max(32, "Employee ID must be 32 characters or fewer")
-    .regex(/^[A-Za-z0-9_-]+$/, "Use letters, numbers, - or _"),
   firstName: z.string().trim().min(1, "First name is required").max(100, "Too long"),
   lastName: z.string().trim().min(1, "Last name is required").max(100, "Too long"),
   email: z.string().trim().min(1, "Email is required").email("Enter a valid email").max(254, "Too long"),

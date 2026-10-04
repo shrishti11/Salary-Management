@@ -92,7 +92,7 @@ export async function action({ request, params }: Route.ActionArgs): Promise<Act
 
   switch (body.intent) {
     case "update": {
-      // The employee code is immutable; never send it.
+      // The backend rejects unknown fields (and the ID is generated), so never forward it.
       const { intent: _intent, employeeCode: _employeeCode, ...input } = body;
       const result = await updateEmployee(request, params.id, input);
       return result.ok ? { intent: "update", message: "Employee updated" } : { intent: "update", error: toFormError(result) };
@@ -445,7 +445,6 @@ export default function EmployeeProfile() {
         mode="edit"
         departments={departments}
         defaultValues={{
-          employeeCode: employee.employeeCode,
           firstName: employee.firstName,
           lastName: employee.lastName,
           email: employee.email,

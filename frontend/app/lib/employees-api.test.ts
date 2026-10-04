@@ -55,7 +55,6 @@ describe("api calls", () => {
 
 describe("toFormError", () => {
   it.each([
-    ["DUPLICATE_EMPLOYEE_CODE", "employeeCode"],
     ["DUPLICATE_EMAIL", "email"],
     ["INVALID_DEPARTMENT", "departmentId"],
   ])("maps %s to the %s field", (code, field) => {

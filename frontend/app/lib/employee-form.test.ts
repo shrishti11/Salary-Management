@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import { employeeFormSchema, localToday } from "./employee-form";
 
 const valid = {
-  employeeCode: "emp-1",
   firstName: "Asha",
   lastName: "Rao",
   email: "asha@example.com",
@@ -20,7 +19,6 @@ describe("employeeFormSchema", () => {
   });
 
   it.each([
-    ["employeeCode", ""],
     ["firstName", "  "],
     ["email", "nope"],
     ["phone", "abc"],

@@ -20,7 +20,6 @@ interface EmployeeFormDialogProps {
 }
 
 const EMPTY: EmployeeFormValues = {
-  employeeCode: "",
   firstName: "",
   lastName: "",
   email: "",
@@ -168,10 +167,6 @@ export default function EmployeeFormDialog({
         Job
       </Typography>
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" } }}>
-        {text("employeeCode", "Employee ID", {
-          disabled: mode === "edit",
-          helperText: mode === "edit" ? "Cannot be changed" : errors.employeeCode?.message,
-        })}
         {select(
           "departmentId",
           "Department",

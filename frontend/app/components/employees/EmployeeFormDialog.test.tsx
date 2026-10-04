@@ -21,7 +21,6 @@ const dialog = () => within(screen.getByRole("dialog"));
 
 async function fillValid() {
   const d = dialog();
-  await userEvent.type(d.getByLabelText("Employee ID"), "emp-9");
   await userEvent.type(d.getByLabelText("First name"), "Asha");
   await userEvent.type(d.getByLabelText("Last name"), "Rao");
   await userEvent.type(d.getByLabelText("Work email"), "asha@example.com");
@@ -48,8 +47,7 @@ describe("EmployeeFormDialog", () => {
   it("blocks submit and shows required errors when fields are empty", async () => {
     const { onSubmit } = setup();
     await userEvent.click(dialog().getByRole("button", { name: "Add employee" }));
-    expect(await screen.findByText("Employee ID is required")).toBeInTheDocument();
-    expect(screen.getByText("First name is required")).toBeInTheDocument();
+    expect(await screen.findByText("First name is required")).toBeInTheDocument();
     expect(screen.getByText("Select a department")).toBeInTheDocument();
     expect(screen.getByText("Select a country")).toBeInTheDocument();
     expect(dialog().getByRole("combobox", { name: "Country" })).toHaveAttribute("aria-invalid", "true");
@@ -77,7 +75,6 @@ describe("EmployeeFormDialog", () => {
     await userEvent.click(dialog().getByRole("button", { name: "Add employee" }));
     await waitFor(() => expect(onSubmit).toHaveBeenCalledTimes(1));
     expect(onSubmit.mock.calls[0]![0]).toMatchObject({
-      employeeCode: "emp-9",
       firstName: "Asha",
       email: "asha@example.com",
       departmentId: "d1",
@@ -104,13 +101,12 @@ describe("EmployeeFormDialog", () => {
     expect(dialog().getByRole("alert")).toHaveTextContent("Something broke");
   });
 
-  it("locks the employee ID in edit mode and prefills values", () => {
+  it("has no Employee ID field and prefills values in edit mode", () => {
     setup({
       mode: "edit",
-      defaultValues: { employeeCode: "EMP-1", firstName: "Asha", lastName: "Rao", email: "a@b.com", phone: "", departmentId: "d1", designation: "Eng", country: "IN", joiningDate: "2024-01-15" },
+      defaultValues: { firstName: "Asha", lastName: "Rao", email: "a@b.com", phone: "", departmentId: "d1", designation: "Eng", country: "IN", joiningDate: "2024-01-15" },
     });
-    expect(dialog().getByLabelText("Employee ID")).toBeDisabled();
-    expect(dialog().getByLabelText("Employee ID")).toHaveValue("EMP-1");
+    expect(dialog().queryByLabelText("Employee ID")).not.toBeInTheDocument();
     expect(dialog().getByLabelText("First name")).toHaveValue("Asha");
     expect(dialog().getByRole("combobox", { name: "Country" })).toHaveValue("India");
   });

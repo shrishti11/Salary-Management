@@ -171,14 +171,13 @@ describe("employee profile page", () => {
     expect(screen.queryByText("asha@example.com")).not.toBeInTheDocument();
   });
 
-  it("opens the edit dialog from ?edit=1 with Employee ID locked, and Cancel removes only edit from the URL", async () => {
+  it("opens the edit dialog from ?edit=1 without an Employee ID field, and Cancel removes only edit from the URL", async () => {
     const user = userEvent.setup();
     stubBackend(() => json({ employee }));
     const router = renderAt("/employees/e1?edit=1&tab=x");
 
     const dialog = await screen.findByRole("dialog", { name: "Edit employee" });
-    expect(within(dialog).getByLabelText("Employee ID")).toBeDisabled();
-    expect(within(dialog).getByLabelText("Employee ID")).toHaveValue("EMP-1");
+    expect(within(dialog).queryByLabelText("Employee ID")).not.toBeInTheDocument();
     expect(within(dialog).getByLabelText("First name")).toHaveValue("Asha");
     expect(within(dialog).getByLabelText("Department")).toHaveValue("d1");
 
