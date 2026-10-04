@@ -62,8 +62,8 @@ Salaries use the same roles and live under `/api/employees/:id/salaries`. Record
 
 `GET /api/salaries` (ADMIN and HR_MANAGER) lists every employee with their current salary, for a company-wide read-only view.
 
-- Query: `page` (default 1), `pageSize` (1-100, default 20), `q` (name, employee ID or email), `departmentId`, `country`, `status` (`ACTIVE` default, `INACTIVE`, `ALL`), `salary` (`with` / `without` a current salary), `sortBy` (`name` default, `employeeCode`, `department`, `country`, `effectiveDate`), `sortOrder` (`asc` default, `desc`). Unknown keys and invalid values return 400 `VALIDATION_ERROR`.
-- Response: `{ data: [{ employee: { id, employeeCode, firstName, lastName, email, department, country, status }, current: { id, currency, effectiveDate, gross, net, deductions, reason } | null, hasScheduled }], pagination: { page, pageSize, total, totalPages } }`. Amounts are decimal strings in the record's own currency; there is no amount sorting because currencies differ.
+- Query: `page` (default 1), `pageSize` (1-100, default 20), `q` (name, employee ID or email), `departmentId`, `country`, `status` (`ACTIVE` default, `INACTIVE`, `ALL`), `salary` (`with` / `without` a current salary), `sortBy` (`name` default, `employeeCode`, `department`, `country`, `joiningDate`, `effectiveDate`), `sortOrder` (`asc` default, `desc`). Unknown keys and invalid values return 400 `VALIDATION_ERROR`.
+- Response: `{ data: [{ employee: { id, employeeCode, firstName, lastName, email, department, country, designation, joiningDate, status }, current: { id, currency, effectiveDate, gross, net, deductions, reason } | null, hasScheduled }], pagination: { page, pageSize, total, totalPages } }`. `joiningDate` and `effectiveDate` are `YYYY-MM-DD`. Amounts are decimal strings in the record's own currency; there is no amount sorting because currencies differ.
 
 ### Dashboard and analytics
 
