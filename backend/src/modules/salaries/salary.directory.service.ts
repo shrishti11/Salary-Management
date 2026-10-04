@@ -1,4 +1,5 @@
 import type { Prisma } from "../../../generated/prisma/client.ts";
+import { toCsv } from "../../lib/csv.ts";
 import { prisma } from "../../lib/prisma.ts";
 import { contains } from "../employees/employee.service.ts";
 import { computeTotals } from "./salary.calc.ts";
@@ -138,4 +139,34 @@ export async function listSalaryDirectory(query: ListDirectoryQuery) {
     data: rows.map((row) => serializeRow(row, today)),
     pagination: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) },
   };
+}
+
+const EXPORT_LIMIT = 50_000;
+
+const EXPORT_HEADER = [
+  "Employee ID", "First name", "Last name", "Email", "Department", "Designation", "Country", "Joining date", "Status",
+  "Currency", "Gross", "Deductions", "Net", "Salary effective date", "Revision scheduled",
+];
+
+/** The same rows as the list for the given filters and sort, ignoring pagination, as CSV. */
+export async function exportSalaryDirectoryCsv(query: ListDirectoryQuery) {
+  const { data } = await listSalaryDirectory({ ...query, page: 1, pageSize: EXPORT_LIMIT });
+  const rows = data.map(({ employee, current, hasScheduled }) => [
+    employee.employeeCode,
+    employee.firstName,
+    employee.lastName,
+    employee.email,
+    employee.department.name,
+    employee.designation,
+    employee.country,
+    employee.joiningDate,
+    employee.status,
+    current?.currency,
+    current?.gross,
+    current?.deductions,
+    current?.net,
+    current?.effectiveDate,
+    hasScheduled ? "Yes" : "No",
+  ]);
+  return { csv: toCsv(EXPORT_HEADER, rows), count: rows.length };
 }
