@@ -11,7 +11,6 @@ import {
 const DEPARTMENT_ID = "6f1c1a4e-3a53-4b2e-9a53-0d1b6c0f5a11";
 
 const valid = {
-  employeeCode: "emp-001",
   firstName: " Asha ",
   lastName: "Rao",
   email: " Asha.Rao@Example.COM ",
@@ -22,9 +21,9 @@ const valid = {
 };
 
 describe("createEmployeeSchema", () => {
-  it("normalises code, names and email", () => {
+  it("normalises names and email", () => {
     const parsed = createEmployeeSchema.parse(valid);
-    expect(parsed.employeeCode).toBe("EMP-001");
+    expect("employeeCode" in parsed).toBe(false);
     expect(parsed.firstName).toBe("Asha");
     expect(parsed.email).toBe("asha.rao@example.com");
     expect(parsed.phone).toBeUndefined();
@@ -41,8 +40,6 @@ describe("createEmployeeSchema", () => {
     ["missing firstName", { firstName: undefined }],
     ["blank designation", { designation: "   " }],
     ["bad email", { email: "nope" }],
-    ["bad code chars", { employeeCode: "EMP 001!" }],
-    ["code too long", { employeeCode: "A".repeat(33) }],
     ["bad phone", { phone: "abc" }],
     ["unsupported country", { country: "ZZ" }],
     ["lowercase country", { country: "in" }],

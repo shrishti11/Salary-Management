@@ -35,13 +35,6 @@ const joiningDateSchema = z
   .refine((value) => value <= new Date().toISOString().slice(0, 10), "Joining date cannot be in the future");
 
 export const createEmployeeSchema = z.object({
-  employeeCode: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .min(1)
-    .max(32)
-    .regex(/^[A-Z0-9_-]+$/),
   firstName: requiredText(100),
   lastName: requiredText(100),
   email: z.string().trim().toLowerCase().max(254).email(),
@@ -53,7 +46,6 @@ export const createEmployeeSchema = z.object({
 });
 
 export const updateEmployeeSchema = createEmployeeSchema
-  .omit({ employeeCode: true })
   .partial()
   .strict()
   .refine((value) => Object.keys(value).length > 0, "At least one field is required");

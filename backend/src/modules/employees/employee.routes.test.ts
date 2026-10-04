@@ -17,7 +17,6 @@ let agent: Awaited<ReturnType<typeof loginAs>>;
 function payload(overrides: Record<string, unknown> = {}) {
   const n = randomUUID().slice(0, 8);
   return {
-    employeeCode: `T-${n.toUpperCase()}`,
     firstName: "Asha",
     lastName: "Rao",
     email: `asha-${n}@example.com`,
@@ -69,13 +68,11 @@ describe("POST /api/employees", () => {
   it("creates an employee and normalises fields", async () => {
     const response = await agent.post("/api/employees").send(
       payload({
-        employeeCode: ` t-norm-${SUFFIX} `,
         email: `  Norm.${SUFFIX}@Example.COM `,
       }),
     );
     expect(response.status).toBe(201);
     expect(response.body.employee).toMatchObject({
-      employeeCode: `T-NORM-${SUFFIX.toUpperCase()}`,
       email: `norm.${SUFFIX}@example.com`,
       phone: null,
       status: "ACTIVE",
@@ -110,11 +107,18 @@ describe("POST /api/employees", () => {
     expect(response.body.error.code).toBe("INVALID_DEPARTMENT");
   });
 
-  it("returns 409 DUPLICATE_EMPLOYEE_CODE", async () => {
-    const existing = await create();
-    const response = await agent.post("/api/employees").send(payload({ employeeCode: existing.employeeCode.toLowerCase() }));
-    expect(response.status).toBe(409);
-    expect(response.body.error.code).toBe("DUPLICATE_EMPLOYEE_CODE");
+  it("generates a unique EMP-NNNNN employee ID and ignores a client-supplied one", async () => {
+    const first = await create({ employeeCode: "HACKED-1" });
+    const second = await create();
+    expect(first.employeeCode).toMatch(/^EMP-\d{5,}$/);
+    expect(second.employeeCode).toMatch(/^EMP-\d{5,}$/);
+    expect(second.employeeCode).not.toBe(first.employeeCode);
+    expect(Number(second.employeeCode.slice(4))).toBeGreaterThan(Number(first.employeeCode.slice(4)));
+  });
+
+  it("generates distinct IDs for concurrent creates", async () => {
+    const created = await Promise.all(Array.from({ length: 8 }, () => create()));
+    expect(new Set(created.map((e) => e.employeeCode)).size).toBe(8);
   });
 
   it("returns 409 DUPLICATE_EMAIL ignoring case and whitespace", async () => {

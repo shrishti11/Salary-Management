@@ -52,14 +52,7 @@ async function assertDepartmentExists(departmentId: string) {
 }
 
 // The driver adapter does not reliably report which constraint failed, so look at the data.
-async function duplicateError(email: string | undefined, employeeCode: string | undefined, excludeId?: string) {
-  if (employeeCode) {
-    const byCode = await prisma.employee.findFirst({
-      where: { employeeCode, ...(excludeId && { NOT: { id: excludeId } }) },
-      select: { id: true },
-    });
-    if (byCode) return new AppError(409, "Employee ID already exists", "DUPLICATE_EMPLOYEE_CODE");
-  }
+async function duplicateError(email: string | undefined, excludeId?: string) {
   if (email) {
     const byEmail = await prisma.employee.findFirst({
       where: { email, ...(excludeId && { NOT: { id: excludeId } }) },
@@ -70,18 +63,26 @@ async function duplicateError(email: string | undefined, employeeCode: string | 
   return new AppError(409, "Employee already exists", "DUPLICATE_EMPLOYEE");
 }
 
+// Employee IDs come from a database sequence, so concurrent creates never collide.
+export async function nextEmployeeCode(): Promise<string> {
+  const [row] = await prisma.$queryRaw<{ code: string }[]>`
+    SELECT 'EMP-' || lpad(nextval('employee_code_seq')::text, 5, '0') AS code`;
+  return row!.code;
+}
+
 export async function createEmployee(input: CreateEmployeeInput): Promise<EmployeeDto> {
   await assertDepartmentExists(input.departmentId);
+  const employeeCode = await nextEmployeeCode();
 
   try {
     const employee = await prisma.employee.create({
-      data: { ...input, phone: input.phone ?? null, joiningDate: toDate(input.joiningDate) },
+      data: { ...input, employeeCode, phone: input.phone ?? null, joiningDate: toDate(input.joiningDate) },
       include: employeeInclude,
     });
     return serializeEmployee(employee);
   } catch (error) {
     if (prismaCode(error) === "P2002") {
-      throw await duplicateError(input.email, input.employeeCode);
+      throw await duplicateError(input.email);
     }
     throw error;
   }
@@ -108,7 +109,7 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput): Pr
   } catch (error) {
     const code = prismaCode(error);
     if (code === "P2025") throw employeeNotFound();
-    if (code === "P2002") throw await duplicateError(input.email, undefined, id);
+    if (code === "P2002") throw await duplicateError(input.email, id);
     throw error;
   }
 }
